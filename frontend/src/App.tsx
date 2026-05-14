@@ -1,3 +1,4 @@
+// Final production sync - V2.1
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
