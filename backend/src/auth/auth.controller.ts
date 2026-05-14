@@ -1,12 +1,16 @@
 import { Controller, Get, Query, Res, Logger, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('login')
   async login(@Res() res: Response) {
