@@ -17,15 +17,15 @@ export class AuthController {
 
   @Get('callback')
   async callback(@Query('code') code: string, @Res() res: Response) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
     try {
       this.logger.log('Recebido callback da 42 com código.');
-      const result = await this.authService.validateUser(code);
-      
-      // Redireciona para o frontend com o token na URL
-      return res.redirect(`http://localhost:5173?secure_session_id=${result.access_token}`);
+      const data = await this.authService.validateUser(code);
+      const userStr = encodeURIComponent(JSON.stringify(data.user));
+      return res.redirect(`${frontendUrl}?token=${data.access_token}&user=${userStr}`);
     } catch (error) {
       this.logger.error('Erro no callback de autenticação:', error.message);
-      return res.redirect('http://localhost:5173?error=auth_failed');
+      return res.redirect(`${frontendUrl}?error=auth_failed`);
     }
   }
 

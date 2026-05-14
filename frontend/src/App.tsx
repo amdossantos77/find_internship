@@ -5,6 +5,8 @@ import {
   DollarSign, Globe, Clock, Filter, Target, LogIn, LogOut, CheckCircle2, Bell, BellOff
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
 interface Offer {
   id: number;
   title: string;
@@ -63,7 +65,7 @@ function App() {
     if (!user) return;
     const newState = !notificationsEnabled;
     try {
-      const response = await fetch('http://localhost:3002/auth/notifications', {
+      const response = await fetch(`${API_BASE_URL}/auth/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.userId, enabled: newState }),
@@ -147,7 +149,7 @@ function App() {
              Aceder ao portal oficial 42
           </p>
           <a 
-            href="http://localhost:3002/auth/login"
+            href={`${API_BASE_URL}/auth/login`}
             className="block w-full bg-[#00BABC] hover:bg-[#008f91] text-black font-black py-4 rounded-2xl transition-all shadow-xl text-center no-underline uppercase text-xs"
           >
             ENTRAR COM A 42

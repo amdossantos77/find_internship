@@ -26,7 +26,7 @@ export class AuthService {
 
   getLoginUrl(): string {
     const clientId = this.configService.get<string>('API_42_CLIENT_ID');
-    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI') || '';
+    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI') || 'http://localhost:5173/auth/callback';
     const apiUrl = this.configService.get<string>('API_42_URL') || 'https://api.intra.42.fr';
 
     return `${apiUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
@@ -35,22 +35,20 @@ export class AuthService {
   }
 
   async validateUser(code: string) {
-    const clientId = this.configService.get<string>('API_42_CLIENT_ID');
-    const clientSecret = this.configService.get<string>('API_42_CLIENT_SECRET');
-    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI') || '';
+    const body = {
+      grant_type: 'authorization_code',
+      client_id: this.configService.get<string>('API_42_CLIENT_ID'),
+      client_secret: this.configService.get<string>('API_42_CLIENT_SECRET'),
+      code: code,
+      redirect_uri: this.configService.get<string>('OAUTH_REDIRECT_URI') || '',
+    };
     const apiUrl = this.configService.get<string>('API_42_URL') || 'https://api.intra.42.fr';
 
     try {
-      this.logger.log(`Trocando código por token para: ${redirectUri}`);
+      this.logger.log(`Trocando código por token para: ${body.redirect_uri}`);
       
       const tokenResponse = await lastValueFrom(
-        this.httpService.post(`${apiUrl}/oauth/token`, {
-          grant_type: 'authorization_code',
-          client_id: clientId,
-          client_secret: clientSecret,
-          code: code,
-          redirect_uri: redirectUri,
-        }, {
+        this.httpService.post(`${apiUrl}/oauth/token`, body, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 60000,
           // @ts-ignore
