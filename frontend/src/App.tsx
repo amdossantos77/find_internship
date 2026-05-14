@@ -87,11 +87,24 @@ function App() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('secure_session_id');
+    const tokenFromUrl = urlParams.get('token') || urlParams.get('secure_session_id');
+    const userFromUrl = urlParams.get('user');
+
     if (tokenFromUrl) {
       localStorage.setItem(STORAGE_KEY, tokenFromUrl);
       setToken(tokenFromUrl);
-      window.history.replaceState({}, document.title, "/"); 
+      
+      if (userFromUrl) {
+        try {
+          const parsedUser = JSON.parse(decodeURIComponent(userFromUrl));
+          setUser(parsedUser);
+          setNotificationsEnabled(parsedUser.notifications_enabled ?? true);
+        } catch (e) {
+          console.error("Erro ao processar dados do user na URL", e);
+        }
+      }
+      
+      window.history.replaceState({}, document.title, window.location.pathname); 
     }
   }, []);
 
