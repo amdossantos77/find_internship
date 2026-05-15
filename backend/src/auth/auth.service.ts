@@ -31,7 +31,7 @@ export class AuthService {
 
     return `${apiUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri,
-    )}&response_type=code&scope=public&prompt=login`;
+    )}&response_type=code&scope=public`;
   }
 
   async validateUser(code: string) {
