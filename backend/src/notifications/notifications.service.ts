@@ -164,15 +164,5 @@ export class NotificationsService {
     }
   }
 
-  async sendTestEmail(email: string) {
-    const dummyOffer = {
-      title: 'Software Engineer Intern (Exemplo)',
-      company: '42 Luanda & Global Tech',
-      location: 'Luanda, Angola / Remoto',
-      salary: '1500 EUR',
-      contract_type: 'stage',
-      link: 'https://profile.intra.42.fr',
-    };
-    return this.sendEmail(dummyOffer, email);
   }
 }
