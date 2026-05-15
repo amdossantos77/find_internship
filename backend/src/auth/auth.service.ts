@@ -137,12 +137,14 @@ export class AuthService {
     }
 
     if (data) {
-      try {
-        const info = await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
-        this.logger.log(`E-mail de confirmação enviado para @${data.login}: ${info.messageId}`);
-      } catch (mailError) {
-        this.logger.error(`Erro ao enviar e-mail de status para @${data.login}:`, mailError.message);
-      }
+      // Enviar e-mail em background
+      this.notificationsService.sendStatusEmail(data.email, data.login, enabled)
+        .then(info => {
+          this.logger.log(`E-mail de confirmação enviado para @${data.login}: ${info?.id}`);
+        })
+        .catch(mailError => {
+          this.logger.error(`Erro ao enviar e-mail de status para @${data.login}: ${mailError.message}`);
+        });
     }
 
     return data;

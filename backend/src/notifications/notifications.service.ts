@@ -12,8 +12,8 @@ export class NotificationsService {
   constructor(private configService: ConfigService) {
     this.resend = new Resend(this.configService.get('RESEND_API_KEY'));
     this.supabase = createClient(
-      this.configService.get('SUPABASE_URL'),
-      this.configService.get('SUPABASE_KEY')
+      this.configService.get('SUPABASE_URL') || '',
+      this.configService.get('SUPABASE_KEY') || ''
     );
   }
 
