@@ -41,6 +41,7 @@ function App() {
   const [onlyRemote, setOnlyRemote] = useState(false);
   const [user, setUser] = useState<{login: string, image: string, userId: number, notifications_enabled: boolean} | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -63,8 +64,11 @@ function App() {
   }, [token]);
 
   const handleToggleNotifications = async () => {
-    if (!user) return;
+    if (!user || loadingNotifications) return;
     const newState = !notificationsEnabled;
+    setLoadingNotifications(true);
+    
+    try {
       console.log('Tentando alternar notificações para:', { userId: user.userId, enabled: newState });
       const response = await fetch(`${API_BASE_URL}/auth/notifications`, {
         method: 'POST',
@@ -82,6 +86,8 @@ function App() {
       }
     } catch (error) {
       console.error('Erro de rede ao alternar notificações:', error);
+    } finally {
+      setLoadingNotifications(false);
     }
   };
 
@@ -195,14 +201,21 @@ function App() {
 
         <button 
           onClick={handleToggleNotifications}
+          disabled={loadingNotifications}
           className={`p-3 border rounded-2xl transition-all shadow-2xl group ${
+            loadingNotifications ? 'opacity-50 cursor-not-allowed' : ''
+          } ${
             notificationsEnabled 
               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20' 
               : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-emerald-500/50 hover:text-emerald-500'
           }`}
           title={notificationsEnabled ? 'Desativar Notificações' : 'Ativar Notificações'}
         >
-          {notificationsEnabled ? <Bell size={18} className="animate-bounce" /> : <BellOff size={18} />}
+          {loadingNotifications ? (
+            <div className="w-[18px] h-[18px] border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            notificationsEnabled ? <Bell size={18} className="animate-bounce" /> : <BellOff size={18} />
+          )}
         </button>
       </div>
 
