@@ -50,13 +50,19 @@ function App() {
         const userStr = new URLSearchParams(window.location.search).get('user');
         const parsedUser = userStr ? JSON.parse(decodeURIComponent(userStr)) : null;
         
+        // Persistência local do estado das notificações
+        const localNotifStatus = localStorage.getItem('notifications_enabled');
+        const isEnabled = localNotifStatus !== null 
+          ? localNotifStatus === 'true' 
+          : (parsedUser?.notifications_enabled ?? payload.notifications_enabled ?? false);
+        
         setUser({ 
           login: payload.login, 
           image: payload.image,
           userId: parsedUser?.userId || payload.userId,
-          notifications_enabled: parsedUser?.notifications_enabled ?? false
+          notifications_enabled: isEnabled
         });
-        setNotificationsEnabled(parsedUser?.notifications_enabled ?? false);
+        setNotificationsEnabled(isEnabled);
       } catch (e) {
         console.error("Erro ao decodificar token", e);
       }
@@ -80,6 +86,7 @@ function App() {
         const data = await response.json();
         console.log('Sucesso ao alternar:', data);
         setNotificationsEnabled(newState);
+        localStorage.setItem('notifications_enabled', String(newState));
       } else {
         const errData = await response.text();
         console.error('Erro do servidor ao alternar:', errData);
@@ -155,10 +162,17 @@ function App() {
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
   const handleLogout = () => {
+    console.log('Logging out...');
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('notifications_enabled');
     setToken(null);
-    // Redireciona para o logout da 42 e depois volta para o site
-    window.location.href = 'https://auth.intra.42.fr/users/sign_out';
+    setUser(null);
+    setOffers([]);
+    
+    // Pequeno delay para garantir que o estado é limpo antes do redirect
+    setTimeout(() => {
+      window.location.href = 'https://auth.intra.42.fr/users/sign_out';
+    }, 100);
   };
 
   if (!token) {
