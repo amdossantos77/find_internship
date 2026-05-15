@@ -77,19 +77,32 @@ export class AuthService {
         last_login: new Date().toISOString(),
       };
 
-      const { data: dbUser } = await this.supabase
+      // 1. Verificar se o utilizador já existe
+      const { data: existingUser } = await this.supabase
         .from('app_users')
-        .upsert(userProfile, { onConflict: 'external_id' })
-        .select()
+        .select('*')
+        .eq('external_id', userData.id)
         .single();
-      
-      // Se for um utilizador novo (ou se o campo for null), garantimos que começa como FALSE na DB
-      if (dbUser && dbUser.notifications_enabled === null) {
-        await this.supabase
+
+      let dbUser;
+
+      if (!existingUser) {
+        // 2. Se não existir, criar com notifications_enabled: false
+        const { data: newUser } = await this.supabase
           .from('app_users')
-          .update({ notifications_enabled: false })
-          .eq('external_id', userData.id);
-        dbUser.notifications_enabled = false;
+          .insert([{ ...userProfile, notifications_enabled: false }])
+          .select()
+          .single();
+        dbUser = newUser;
+      } else {
+        // 3. Se já existir, apenas atualizar o perfil (sem tocar nas notificações)
+        const { data: updatedUser } = await this.supabase
+          .from('app_users')
+          .update(userProfile)
+          .eq('external_id', userData.id)
+          .select()
+          .single();
+        dbUser = updatedUser;
       }
 
       const payload = { 
