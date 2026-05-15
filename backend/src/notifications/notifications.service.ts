@@ -140,6 +140,15 @@ export class NotificationsService {
     const filters = user.filters || {};
     const lastLogin = user.last_login;
 
+    // 1. Buscar IDs de vagas já notificadas para este utilizador
+    const { data: notified } = await this.supabase
+      .from('notified_offers')
+      .select('offer_id')
+      .eq('user_id', user.userId);
+
+    const notifiedIds = notified?.map(n => String(n.offer_id)) || [];
+
+    // 2. Buscar novas vagas filtradas
     let query = this.supabase
       .from('internship_offers')
       .select('*')
@@ -156,10 +165,24 @@ export class NotificationsService {
       return;
     }
 
-    if (offers && offers.length > 0) {
-      this.logger.log(`Encontradas ${offers.length} novas vagas para @${user.login}. Enviando e-mails...`);
-      for (const offer of offers) {
-        await this.sendEmail(offer, user.email);
+    // 3. Filtrar as que já foram enviadas
+    const newOffers = offers?.filter(o => !notifiedIds.includes(String(o.id))) || [];
+
+    if (newOffers.length > 0) {
+      this.logger.log(`Encontradas ${newOffers.length} novas vagas reais para @${user.login}.`);
+      
+      for (const offer of newOffers) {
+        try {
+          await this.sendEmail(offer, user.email);
+          
+          // 4. Registar na tabela notified_offers para não repetir e para a tabela não estar vazia
+          await this.supabase.from('notified_offers').insert([{
+            offer_id: Number(offer.id),
+            user_id: Number(user.userId)
+          }]);
+        } catch (e) {
+          this.logger.error(`Erro ao processar vaga ${offer.id} para ${user.login}:`, e.message);
+        }
       }
     }
   }

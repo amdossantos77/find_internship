@@ -161,18 +161,12 @@ function App() {
     if (token) fetchOffers();
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
-  const handleLogout = () => {
-    console.log('Logging out...');
+    // Apenas limpa o estado local e volta para a tela de login
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('notifications_enabled');
     setToken(null);
     setUser(null);
     setOffers([]);
-    
-    // Pequeno delay para garantir que o estado é limpo antes do redirect
-    setTimeout(() => {
-      window.location.href = 'https://auth.intra.42.fr/users/sign_out';
-    }, 100);
   };
 
   if (!token) {
