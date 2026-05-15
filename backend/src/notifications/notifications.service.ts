@@ -91,6 +91,8 @@ export class NotificationsService {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
       },
+      // @ts-ignore
+      family: 4,
     });
 
     const info = await transporter.sendMail({
@@ -124,6 +126,8 @@ export class NotificationsService {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
       },
+      // @ts-ignore
+      family: 4,
     });
 
     const formatDate = (dateStr: string) => {

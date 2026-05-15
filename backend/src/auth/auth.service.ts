@@ -82,6 +82,15 @@ export class AuthService {
         .upsert(userProfile, { onConflict: 'external_id' })
         .select()
         .single();
+      
+      // Se for um utilizador novo (ou se o campo for null), garantimos que começa como FALSE na DB
+      if (dbUser && dbUser.notifications_enabled === null) {
+        await this.supabase
+          .from('app_users')
+          .update({ notifications_enabled: false })
+          .eq('external_id', userData.id);
+        dbUser.notifications_enabled = false;
+      }
 
       const payload = { 
         userId: userData.id, 
