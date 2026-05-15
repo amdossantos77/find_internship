@@ -102,12 +102,17 @@ export class AuthService {
   }
 
   async toggleNotifications(userId: number, enabled: boolean) {
+    this.logger.log(`Solicitação de toggle para user_id: ${userId} -> ${enabled}`);
     const { data, error } = await this.supabase
       .from('app_users')
       .update({ notifications_enabled: enabled })
       .eq('external_id', userId)
       .select()
       .single();
+
+    if (error) {
+      this.logger.error(`Erro ao atualizar no Supabase para user ${userId}:`, error.message);
+    }
 
     if (data) {
       try {

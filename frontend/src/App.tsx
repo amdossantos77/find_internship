@@ -53,9 +53,9 @@ function App() {
           login: payload.login, 
           image: payload.image,
           userId: parsedUser?.userId || payload.userId,
-          notifications_enabled: parsedUser?.notifications_enabled ?? true
+          notifications_enabled: parsedUser?.notifications_enabled ?? false
         });
-        setNotificationsEnabled(parsedUser?.notifications_enabled ?? true);
+        setNotificationsEnabled(parsedUser?.notifications_enabled ?? false);
       } catch (e) {
         console.error("Erro ao decodificar token", e);
       }
@@ -65,17 +65,23 @@ function App() {
   const handleToggleNotifications = async () => {
     if (!user) return;
     const newState = !notificationsEnabled;
-    try {
+      console.log('Tentando alternar notificações para:', { userId: user.userId, enabled: newState });
       const response = await fetch(`${API_BASE_URL}/auth/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.userId, enabled: newState }),
+        body: JSON.stringify({ userId: Number(user.userId), enabled: newState }),
       });
+      
       if (response.ok) {
+        const data = await response.json();
+        console.log('Sucesso ao alternar:', data);
         setNotificationsEnabled(newState);
+      } else {
+        const errData = await response.text();
+        console.error('Erro do servidor ao alternar:', errData);
       }
     } catch (error) {
-      console.error('Erro ao alternar notificações:', error);
+      console.error('Erro de rede ao alternar notificações:', error);
     }
   };
 
@@ -145,7 +151,8 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setToken(null);
-    window.location.href = '/';
+    // Redireciona para o logout da 42 e depois volta para o site
+    window.location.href = 'https://auth.intra.42.fr/users/sign_out';
   };
 
   if (!token) {
