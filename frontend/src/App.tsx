@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, MapPin, Search, Briefcase, Calendar, 
-  DollarSign, Globe, Clock, Filter, Target, LogIn, LogOut, CheckCircle2, Bell, BellOff
+  Globe, Filter, Target, LogIn, LogOut, CheckCircle2, Bell, BellOff
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
