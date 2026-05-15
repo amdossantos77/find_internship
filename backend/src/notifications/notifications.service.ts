@@ -20,7 +20,7 @@ export class NotificationsService {
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
     try {
       const { data, error } = await this.resend.emails.send({
-        from: 'Find Internship <onboarding@resend.dev>',
+        from: 'Find Internship <vagas@amarildodossantos.me>',
         to: email,
         subject: `Notificações ${enabled ? 'Ativadas' : 'Desativadas'} - Find Internship`,
         html: `
@@ -50,7 +50,7 @@ export class NotificationsService {
   private async sendEmail(offer: any, targetEmail: string) {
     try {
       const { data, error } = await this.resend.emails.send({
-        from: 'Nova Vaga! <onboarding@resend.dev>',
+        from: 'Nova Vaga! <vagas@amarildodossantos.me>',
         to: targetEmail,
         subject: `🚀 Nova Vaga: ${offer.title} em ${offer.company}`,
         html: `
