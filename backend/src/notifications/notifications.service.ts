@@ -83,7 +83,7 @@ export class NotificationsService {
   }
 
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
-    const transporter = nodemailer.createTransport({
+    const transporter = (nodemailer.createTransport as any)({
       host: this.configService.get('SMTP_HOST'),
       port: Number(this.configService.get('SMTP_PORT')),
       secure: false,
@@ -91,7 +91,6 @@ export class NotificationsService {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
       },
-      // @ts-ignore
       family: 4,
     });
 
@@ -118,7 +117,7 @@ export class NotificationsService {
   }
 
   private async sendEmail(offer: any, targetEmail: string) {
-    const transporter = nodemailer.createTransport({
+    const transporter = (nodemailer.createTransport as any)({
       host: this.configService.get('SMTP_HOST'),
       port: Number(this.configService.get('SMTP_PORT')),
       secure: false,
@@ -126,7 +125,6 @@ export class NotificationsService {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
       },
-      // @ts-ignore
       family: 4,
     });
 
