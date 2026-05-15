@@ -22,24 +22,39 @@ export class NotificationsService {
       const { data, error } = await this.resend.emails.send({
         from: 'Find Internship <vagas@amarildodossantos.me>',
         to: email,
-        subject: `Notificações ${enabled ? 'Ativadas' : 'Desativadas'} - Find Internship`,
+        subject: `🔔 Bot de Vagas: ${enabled ? 'ATIVADO - ✅ Ativado com Sucesso!' : 'DESATIVADO - ❌ Desativado'}`,
         html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Olá @${login}!</h2>
-            <p>Este e-mail é para confirmar que as tuas notificações de novas vagas foram <strong>${enabled ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.</p>
-            ${enabled ? '<p>Vais receber um e-mail sempre que encontrarmos uma vaga que corresponda aos teus filtros!</p>' : '<p>Não vais receber mais e-mails automáticos por agora.</p>'}
-            <hr />
-            <p style="font-size: 12px; color: #666;">Find Internship - 42 Lisboa</p>
+          <div style="background-color: #121212; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff; text-align: center;">
+            <div style="max-width: 500px; margin: 0 auto; background-color: #1e1e1e; border-radius: 16px; padding: 32px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+              <div style="font-size: 64px; margin-bottom: 16px;">
+                ${enabled ? '✅' : '❌'}
+              </div>
+              <h1 style="color: ${enabled ? '#4caf50' : '#f44336'}; margin-bottom: 8px; font-size: 28px;">
+                ${enabled ? 'Ativado com Sucesso!' : 'Desativado'}
+              </h1>
+              <p style="font-size: 18px; color: #ccc;">Olá <strong>${login}</strong>,</p>
+              <p style="font-size: 16px; line-height: 1.6; color: #bbb;">
+                Confirmamos que o teu bot de notificações para novas vagas foi <strong>${enabled ? 'ligado' : 'desligado'}</strong>.
+              </p>
+              <p style="font-size: 16px; line-height: 1.6; color: #bbb; margin-top: 24px;">
+                ${enabled 
+                  ? 'Agora vais receber alertas de vagas assim que forem publicadas na Intra!' 
+                  : 'Não vais receber mais alertas automáticos por agora. Podes ligar novamente quando quiseres no dashboard.'}
+              </p>
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 12px; color: #666;">
+                Find Internship - 42 Luanda & Global
+              </div>
+            </div>
           </div>
         `,
       });
 
       if (error) {
-        this.logger.error(`Erro do Resend ao enviar status para @${login}:`, error);
+        this.logger.error(`Erro ao enviar e-mail de status para ${login}: ${error.message}`);
         return null;
       }
 
-      this.logger.log(`E-mail de status enviado via Resend para @${login}: ${data.id}`);
+      this.logger.log(`E-mail de status enviado via Resend para ${login}: ${data?.id}`);
       return data;
     } catch (e) {
       this.logger.error(`Erro fatal ao enviar e-mail via Resend: ${e.message}`);
@@ -52,18 +67,33 @@ export class NotificationsService {
       const { data, error } = await this.resend.emails.send({
         from: 'Nova Vaga! <vagas@amarildodossantos.me>',
         to: targetEmail,
-        subject: `🚀 Nova Vaga: ${offer.title} em ${offer.company}`,
+        subject: `🚀 Oportunidade Encontrada: ${offer.title}`,
         html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>🚀 Nova Oportunidade Encontrada!</h2>
-            <p><strong>Empresa:</strong> ${offer.company}</p>
-            <p><strong>Título:</strong> ${offer.title}</p>
-            <p><strong>Local:</strong> ${offer.location}</p>
-            <p><strong>Tipo:</strong> ${offer.contract_type}</p>
-            <br />
-            <a href="${offer.link}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ver Vaga na Intra</a>
-            <hr />
-            <p style="font-size: 12px; color: #666;">Find Internship - 42 Lisboa</p>
+          <div style="background-color: #121212; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #1e1e1e; border-radius: 16px; padding: 32px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+              <h1 style="color: #00bcd4; margin-bottom: 16px; font-size: 26px; text-align: center;">Oportunidade Encontrada!</h1>
+              <p style="font-size: 16px; color: #ccc; margin-bottom: 24px; text-align: center;">
+                O teu bot do Find Internship encontrou uma vaga que corresponde aos teus critérios:
+              </p>
+              
+              <div style="background-color: #252525; border-radius: 12px; padding: 24px; margin-bottom: 32px; border: 1px solid #444;">
+                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Cargo:</strong> ${offer.title}</p>
+                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Empresa:</strong> ${offer.company || 'Empresa Privada'}</p>
+                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Local:</strong> ${offer.location}</p>
+                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Tipo:</strong> ${offer.contract_type}</p>
+              </div>
+
+              <div style="text-align: center;">
+                <a href="${offer.link}" style="background-color: #008080; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; transition: background-color 0.3s;">
+                  Ver na Intra 42
+                </a>
+              </div>
+
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 11px; color: #555; text-align: center; line-height: 1.4;">
+                Este é um alerta automático gerado pelo teu servidor Find Internship.<br/>
+                Para deixar de receber estes e-mails, desativa as notificações no teu dashboard.
+              </div>
+            </div>
           </div>
         `,
       });
