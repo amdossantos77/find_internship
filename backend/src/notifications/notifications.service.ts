@@ -4,6 +4,7 @@ import { AppService } from '../app.service';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
+import * as dns from 'dns';
 
 @Injectable()
 export class NotificationsService {
@@ -93,9 +94,12 @@ export class NotificationsService {
         pass: this.configService.get('SMTP_PASS'),
       },
       family: 4,
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
       tls: {
         family: 4,
-        rejectUnauthorized: false, // Ajuda a evitar erros de certificado em alguns proxies
+        rejectUnauthorized: false,
       },
     });
 
@@ -132,6 +136,9 @@ export class NotificationsService {
         pass: this.configService.get('SMTP_PASS'),
       },
       family: 4,
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
       tls: {
         family: 4,
         rejectUnauthorized: false,

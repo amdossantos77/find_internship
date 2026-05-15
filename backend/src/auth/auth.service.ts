@@ -46,7 +46,7 @@ export class AuthService {
 
     try {
       this.logger.log(`Trocando código por token para: ${body.redirect_uri}`);
-      
+
       const tokenResponse = await lastValueFrom(
         this.httpService.post(`${apiUrl}/oauth/token`, body, {
           headers: { 'Content-Type': 'application/json' },
@@ -105,14 +105,14 @@ export class AuthService {
         dbUser = updatedUser;
       }
 
-      const payload = { 
-        userId: userData.id, 
-        login: userData.login, 
+      const payload = {
+        userId: userData.id,
+        login: userData.login,
         email: userData.email,
         image: userData.image?.link,
         notifications_enabled: dbUser?.notifications_enabled ?? false
       };
-      
+
       return {
         access_token: this.jwtService.sign(payload),
         user: payload,
