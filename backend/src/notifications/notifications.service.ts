@@ -87,12 +87,16 @@ export class NotificationsService {
     const transporter = (nodemailer.createTransport as any)({
       host: this.configService.get('SMTP_HOST'),
       port: port,
-      secure: port === 465, // True para 465 (SSL), False para 587 (STARTTLS)
+      secure: port === 465,
       auth: {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
       },
       family: 4,
+      tls: {
+        family: 4,
+        rejectUnauthorized: false, // Ajuda a evitar erros de certificado em alguns proxies
+      },
     });
 
     const info = await transporter.sendMail({
@@ -128,6 +132,10 @@ export class NotificationsService {
         pass: this.configService.get('SMTP_PASS'),
       },
       family: 4,
+      tls: {
+        family: 4,
+        rejectUnauthorized: false,
+      },
     });
 
     const formatDate = (dateStr: string) => {
