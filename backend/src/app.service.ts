@@ -206,7 +206,14 @@ export class AppService implements OnModuleInit {
         });
 
         fetchedOffers.push(...validOnes);
-        if (offers.length < 100) hasMore = false; else page++;
+        
+        if (offers.length < 100) {
+          hasMore = false;
+        } else {
+          page++;
+          // Pausa de 1 segundo entre páginas para evitar Rate Limit (429)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       this.cachedOffers = fetchedOffers;

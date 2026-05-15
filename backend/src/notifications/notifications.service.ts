@@ -20,28 +20,29 @@ export class NotificationsService {
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
     try {
       const { data, error } = await this.resend.emails.send({
-        from: 'Find Internship <vagas@amarildodossantos.me>',
+        from: 'Find Internship Bot <vagas@amarildodossantos.me>',
         to: email,
-        subject: `🔔 Bot de Vagas: ${enabled ? 'ATIVADO - ✅ Ativado com Sucesso!' : 'DESATIVADO - ❌ Desativado'}`,
+        subject: `🔔 Bot de Vagas: ${enabled ? 'ATIVADO' : 'DESATIVADO'}`,
         html: `
-          <div style="background-color: #121212; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff; text-align: center;">
-            <div style="max-width: 500px; margin: 0 auto; background-color: #1e1e1e; border-radius: 16px; padding: 32px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-              <div style="font-size: 64px; margin-bottom: 16px;">
-                ${enabled ? '✅' : '❌'}
-              </div>
-              <h1 style="color: ${enabled ? '#4caf50' : '#f44336'}; margin-bottom: 8px; font-size: 28px;">
-                ${enabled ? 'Ativado com Sucesso!' : 'Desativado'}
+          <div style="background-color: #0f172a; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #f8fafc; text-align: center;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 16px; padding: 48px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+              <h1 style="color: ${enabled ? '#22c55e' : '#ef4444'}; margin-bottom: 24px; font-size: 28px; font-weight: bold;">
+                ${enabled ? '✅ Ativado com Sucesso!' : '❌ Desativado'}
               </h1>
-              <p style="font-size: 18px; color: #ccc;">Olá <strong>${login}</strong>,</p>
-              <p style="font-size: 16px; line-height: 1.6; color: #bbb;">
+              
+              <p style="font-size: 18px; margin-bottom: 16px; color: #f1f5f9;">Olá <strong>${login}</strong>,</p>
+              
+              <p style="font-size: 16px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px;">
                 Confirmamos que o teu bot de notificações para novas vagas foi <strong>${enabled ? 'ligado' : 'desligado'}</strong>.
               </p>
-              <p style="font-size: 16px; line-height: 1.6; color: #bbb; margin-top: 24px;">
+              
+              <p style="font-size: 16px; line-height: 1.6; color: #94a3b8;">
                 ${enabled 
-                  ? 'Agora vais receber alertas de vagas assim que forem publicadas na Intra!' 
-                  : 'Não vais receber mais alertas automáticos por agora. Podes ligar novamente quando quiseres no dashboard.'}
+                  ? 'Agora vais receber alertas de vagas em Angola, Remote e Freelance assim que forem publicadas!' 
+                  : 'Não vais receber mais alertas automáticos por agora. Podes ligar novamente no dashboard.'}
               </p>
-              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 12px; color: #666;">
+              
+              <div style="margin-top: 48px; font-size: 13px; color: #64748b;">
                 Find Internship - 42 Luanda & Global
               </div>
             </div>
@@ -65,33 +66,34 @@ export class NotificationsService {
   private async sendEmail(offer: any, targetEmail: string) {
     try {
       const { data, error } = await this.resend.emails.send({
-        from: 'Nova Vaga! <vagas@amarildodossantos.me>',
+        from: 'Find Internship Bot <vagas@amarildodossantos.me>',
         to: targetEmail,
-        subject: `🚀 Oportunidade Encontrada: ${offer.title}`,
+        subject: `🚀 Nova Vaga: ${offer.title} - ${offer.company || 'Empresa Privada'}`,
         html: `
-          <div style="background-color: #121212; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #1e1e1e; border-radius: 16px; padding: 32px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-              <h1 style="color: #00bcd4; margin-bottom: 16px; font-size: 26px; text-align: center;">Oportunidade Encontrada!</h1>
-              <p style="font-size: 16px; color: #ccc; margin-bottom: 24px; text-align: center;">
+          <div style="background-color: #0f172a; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #f8fafc;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 16px; padding: 40px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+              <h1 style="color: #38bdf8; margin-bottom: 24px; font-size: 24px; font-weight: bold;">Oportunidade Encontrada!</h1>
+              
+              <p style="font-size: 15px; color: #94a3b8; margin-bottom: 24px;">
                 O teu bot do Find Internship encontrou uma vaga que corresponde aos teus critérios:
               </p>
               
-              <div style="background-color: #252525; border-radius: 12px; padding: 24px; margin-bottom: 32px; border: 1px solid #444;">
-                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Cargo:</strong> ${offer.title}</p>
-                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Empresa:</strong> ${offer.company || 'Empresa Privada'}</p>
-                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Local:</strong> ${offer.location}</p>
-                <p style="margin: 8px 0;"><strong style="color: #00bcd4;">Tipo:</strong> ${offer.contract_type}</p>
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin-bottom: 32px; border: 1px solid #334155;">
+                <p style="margin: 12px 0; font-size: 15px;"><strong style="color: #38bdf8;">Cargo:</strong> ${offer.title}</p>
+                <p style="margin: 12px 0; font-size: 15px;"><strong style="color: #38bdf8;">Empresa:</strong> ${offer.company || 'Empresa Privada'}</p>
+                <p style="margin: 12px 0; font-size: 15px;"><strong style="color: #38bdf8;">Local:</strong> ${offer.location}</p>
+                <p style="margin: 12px 0; font-size: 15px;"><strong style="color: #38bdf8;">Salário:</strong> ${offer.salary || 'Não especificado'}</p>
+                <p style="margin: 12px 0; font-size: 15px;"><strong style="color: #38bdf8;">Tipo:</strong> ${offer.contract_type}</p>
               </div>
 
-              <div style="text-align: center;">
-                <a href="${offer.link}" style="background-color: #008080; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; transition: background-color 0.3s;">
+              <div style="margin-bottom: 40px; text-align: center;">
+                <a href="${offer.link}" style="background-color: #38bdf8; color: #0f172a; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                   Ver na Intra 42
                 </a>
               </div>
 
-              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 11px; color: #555; text-align: center; line-height: 1.4;">
-                Este é um alerta automático gerado pelo teu servidor Find Internship.<br/>
-                Para deixar de receber estes e-mails, desativa as notificações no teu dashboard.
+              <div style="border-top: 1px solid #334155; padding-top: 20px; font-size: 12px; color: #64748b; line-height: 1.6; text-align: center;">
+                Este é um alerta automático gerado pelo teu servidor Find Internship.
               </div>
             </div>
           </div>
