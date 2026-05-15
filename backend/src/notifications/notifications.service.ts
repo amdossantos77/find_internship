@@ -83,10 +83,11 @@ export class NotificationsService {
   }
 
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
+    const port = Number(this.configService.get('SMTP_PORT'));
     const transporter = (nodemailer.createTransport as any)({
       host: this.configService.get('SMTP_HOST'),
-      port: Number(this.configService.get('SMTP_PORT')),
-      secure: false,
+      port: port,
+      secure: port === 465, // True para 465 (SSL), False para 587 (STARTTLS)
       auth: {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
@@ -117,10 +118,11 @@ export class NotificationsService {
   }
 
   private async sendEmail(offer: any, targetEmail: string) {
+    const port = Number(this.configService.get('SMTP_PORT'));
     const transporter = (nodemailer.createTransport as any)({
       host: this.configService.get('SMTP_HOST'),
-      port: Number(this.configService.get('SMTP_PORT')),
-      secure: false,
+      port: port,
+      secure: port === 465,
       auth: {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
