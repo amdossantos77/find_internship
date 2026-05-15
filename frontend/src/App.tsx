@@ -161,6 +161,7 @@ function App() {
     if (token) fetchOffers();
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
+  const handleLogout = () => {
     // Apenas limpa o estado local e volta para a tela de login
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('notifications_enabled');
