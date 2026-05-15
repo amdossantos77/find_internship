@@ -155,10 +155,16 @@ function App() {
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
   const handleLogout = () => {
+    console.log('Logging out...');
     localStorage.removeItem(STORAGE_KEY);
     setToken(null);
-    // Redireciona para o logout da 42 e depois volta para o site
-    window.location.href = 'https://auth.intra.42.fr/users/sign_out';
+    setUser(null);
+    setOffers([]);
+    
+    // Pequeno delay para garantir que o estado é limpo antes do redirect
+    setTimeout(() => {
+      window.location.href = 'https://auth.intra.42.fr/users/sign_out';
+    }, 100);
   };
 
   if (!token) {
@@ -187,14 +193,14 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans selection:bg-[#00BABC]/20 relative">
+    <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans selection:bg-[#00BABC]/20 relative touch-manipulation">
       
-      {/* BOTÕES DE CONTROLO - POSIÇÃO ADAPTATIVA */}
-      <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex flex-row md:flex-col gap-2 md:gap-3 items-center md:items-end">
+      {/* BOTÕES DE CONTROLO - OTIMIZADOS PARA TOQUE */}
+      <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[200] flex flex-row md:flex-col gap-3 md:gap-3 items-center md:items-end">
         <button 
           onClick={handleToggleNotifications}
           disabled={loadingNotifications}
-          className={`p-2.5 md:p-3 border rounded-xl md:rounded-2xl transition-all shadow-2xl group ${
+          className={`p-3.5 md:p-3 border rounded-xl md:rounded-2xl transition-all shadow-2xl active:scale-90 group ${
             loadingNotifications ? 'opacity-50 cursor-not-allowed' : ''
           } ${
             notificationsEnabled 
@@ -204,18 +210,18 @@ function App() {
           title={notificationsEnabled ? 'Desativar Notificações' : 'Ativar Notificações'}
         >
           {loadingNotifications ? (
-            <div className="w-[18px] h-[18px] border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="w-[20px] h-[20px] border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : (
-            notificationsEnabled ? <Bell size={18} className="animate-bounce" /> : <BellOff size={18} />
+            notificationsEnabled ? <Bell size={20} className="animate-bounce" /> : <BellOff size={20} />
           )}
         </button>
 
         <button 
           onClick={handleLogout}
-          className="p-2.5 md:p-3 bg-slate-900 border border-slate-700 hover:border-rose-500/50 hover:text-rose-500 rounded-xl md:rounded-2xl transition-all shadow-2xl text-slate-500 group"
+          className="p-3.5 md:p-3 bg-slate-900 border border-slate-700 hover:border-rose-500/50 hover:text-rose-500 rounded-xl md:rounded-2xl transition-all shadow-2xl text-slate-500 active:scale-90 group"
           title="Signout"
         >
-          <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
+          <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
         </button>
       </div>
 
@@ -259,13 +265,13 @@ function App() {
             </div>
 
             {/* MAIN SEARCH TILE */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-1.5 md:p-2 rounded-2xl md:rounded-3xl flex items-center gap-2 shadow-2xl w-full lg:w-[450px]">
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-2 md:p-2.5 rounded-2xl md:rounded-3xl flex items-center gap-2 shadow-2xl w-full lg:w-[450px]">
               <div className="flex-1 flex items-center px-3 md:px-4">
-                <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3" />
+                <Search className="w-5 h-5 text-slate-500 mr-2 md:mr-3" />
                 <input 
                   type="text" 
                   placeholder="Cidade (ex: Luanda, Paris...)" 
-                  className="bg-transparent border-none outline-none text-xs md:text-sm py-2.5 md:py-3 w-full text-white placeholder-slate-600 font-medium"
+                  className="bg-transparent border-none outline-none text-sm md:text-base py-3 md:py-3 w-full text-white placeholder-slate-600 font-medium"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   onKeyUp={(e) => e.key === 'Enter' && fetchOffers()}
@@ -273,7 +279,7 @@ function App() {
               </div>
               <button 
                 onClick={fetchOffers}
-                className="bg-[#00BABC] hover:brightness-110 text-slate-950 font-black px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl transition-all shadow-[0_0_20px_rgba(0,186,188,0.3)] active:scale-95 text-xs md:text-sm"
+                className="bg-[#00BABC] hover:brightness-110 text-slate-950 font-black px-5 md:px-6 py-3.5 md:py-3 rounded-xl md:rounded-2xl transition-all shadow-[0_0_20px_rgba(0,186,188,0.3)] active:scale-95 text-xs md:text-sm uppercase"
               >
                 BUSCAR
               </button>
@@ -283,16 +289,16 @@ function App() {
           {/* ADVANCED FILTER BAR */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-wrap items-center gap-2 md:gap-4 bg-slate-900/40 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-800/50 backdrop-blur-sm"
+            className="flex flex-wrap items-center gap-3 md:gap-4 bg-slate-900/40 p-4 md:p-4 rounded-2xl md:rounded-3xl border border-slate-800/50 backdrop-blur-sm"
           >
             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 mr-1 md:mr-2 w-full md:w-auto mb-1 md:mb-0">
                <Filter className="w-3.5 h-3.5" /> FILTRAR POR:
             </div>
 
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full md:w-auto flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2.5 w-full md:w-auto flex-1">
               <select 
                 value={country} onChange={(e) => setCountry(e.target.value)}
-                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-3 md:px-4 py-2 text-[10px] md:text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full"
+                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-4 py-3 md:py-2 text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full appearance-none"
               >
                 <option value="">Países (Todos)</option>
                 <option value="France">França</option>
@@ -309,7 +315,7 @@ function App() {
 
               <select 
                 value={contractType} onChange={(e) => setContractType(e.target.value)}
-                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-3 md:px-4 py-2 text-[10px] md:text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full"
+                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-4 py-3 md:py-2 text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full appearance-none"
               >
                 <option value="">Contratos (Todos)</option>
                 <option value="stage">Estágio</option>
@@ -321,7 +327,7 @@ function App() {
 
               <select 
                 value={expertise} onChange={(e) => setExpertise(e.target.value)}
-                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-3 md:px-4 py-2 text-[10px] md:text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full"
+                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-4 py-3 md:py-2 text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full appearance-none"
               >
                 <option value="">Skills (Todas)</option>
                 <option value="java">Java</option>
@@ -336,7 +342,7 @@ function App() {
 
               <select 
                 value={target} onChange={(e) => setTarget(e.target.value)}
-                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-3 md:px-4 py-2 text-[10px] md:text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full"
+                className="bg-slate-800/80 border border-slate-700/50 rounded-xl px-4 py-3 md:py-2 text-xs font-bold text-slate-300 outline-none focus:border-[#00BABC]/50 hover:bg-slate-700 transition-all cursor-pointer w-full appearance-none"
               >
                 <option value="">Público (Todos)</option>
                 <option value="student">Estudantes</option>
@@ -346,10 +352,10 @@ function App() {
 
             <div 
               onClick={() => setOnlyRemote(!onlyRemote)}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all cursor-pointer border w-full sm:w-auto ${onlyRemote ? 'bg-[#00BABC]/10 border-[#00BABC] text-[#00BABC]' : 'bg-slate-800/50 border-slate-700/50 text-slate-500 hover:text-slate-300'}`}
+              className={`flex items-center justify-center gap-2 px-4 py-3 md:py-2 rounded-xl text-xs font-black transition-all cursor-pointer border w-full sm:w-auto active:scale-95 ${onlyRemote ? 'bg-[#00BABC]/10 border-[#00BABC] text-[#00BABC]' : 'bg-slate-800/50 border-slate-700/50 text-slate-500 hover:text-slate-300'}`}
             >
-              <Globe className="w-3.5 h-3.5" /> 100% REMOTE
-              {onlyRemote && <CheckCircle2 className="w-3.5 h-3.5" />}
+              <Globe className="w-4 h-4" /> 100% REMOTE
+              {onlyRemote && <CheckCircle2 className="w-4 h-4" />}
             </div>
           </motion.div>
         </header>
