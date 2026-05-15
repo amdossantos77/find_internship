@@ -177,25 +177,25 @@ function App() {
     <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans selection:bg-[#00BABC]/20 relative">
       
       {/* BOTÃO DE LOGOUT E NOTIFICAÇÕES - CANTO SUPERIOR DIREITO */}
-      <div className="fixed top-8 right-8 z-[100] flex flex-col gap-2 items-end">
+      <div className="fixed top-8 right-8 z-[100] flex flex-col gap-3 items-end">
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 hover:border-rose-500/50 hover:text-rose-500 rounded-2xl transition-all shadow-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 group"
+          className="p-3 bg-slate-900 border border-slate-700 hover:border-rose-500/50 hover:text-rose-500 rounded-2xl transition-all shadow-2xl text-slate-500 group"
+          title="Signout"
         >
-          <LogOut size={14} className="group-hover:rotate-12 transition-transform" />
-          SIGNOUT
+          <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
         </button>
 
         <button 
           onClick={handleToggleNotifications}
-          className={`flex items-center gap-2 px-4 py-2 border rounded-2xl transition-all shadow-2xl text-[10px] font-black uppercase tracking-widest group ${
+          className={`p-3 border rounded-2xl transition-all shadow-2xl group ${
             notificationsEnabled 
               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20' 
               : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-emerald-500/50 hover:text-emerald-500'
           }`}
+          title={notificationsEnabled ? 'Desativar Notificações' : 'Ativar Notificações'}
         >
-          {notificationsEnabled ? <Bell size={14} className="animate-bounce" /> : <BellOff size={14} />}
-          NOTIFICAÇÕES {notificationsEnabled ? 'ON' : 'OFF'}
+          {notificationsEnabled ? <Bell size={18} className="animate-bounce" /> : <BellOff size={18} />}
         </button>
       </div>
 

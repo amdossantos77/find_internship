@@ -124,6 +124,25 @@ export class AppService implements OnModuleInit {
       this.logger.log(`Vagas filtradas por Skill (${skillQuery}): ${results.length}`);
     }
 
+    // Filtro de Tipo de Contrato
+    if (contract_type && contract_type.trim() !== "") {
+      results = results.filter(offer => 
+        (offer.contract_type || "").toLowerCase().includes(contract_type.toLowerCase())
+      );
+      this.logger.log(`Vagas filtradas por Contrato (${contract_type}): ${results.length}`);
+    }
+
+    // Filtro de Público (Target)
+    if (target && target.trim() !== "") {
+      results = results.filter(offer => {
+        const content = `${offer.title} ${offer.little_description}`.toLowerCase();
+        if (target === 'student') return content.includes('student') || content.includes('stagiaire');
+        if (target === 'alumni') return content.includes('alumni') || content.includes('graduate');
+        return true;
+      });
+      this.logger.log(`Vagas filtradas por Target (${target}): ${results.length}`);
+    }
+
     return results.map((offer: any) => {
       const addressParts = (offer.full_address || "").split(',').map(p => p.trim());
       const extractedCountry = addressParts.length > 0 ? addressParts[addressParts.length - 1] : null;

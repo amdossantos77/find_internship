@@ -85,7 +85,7 @@ export class NotificationsService {
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
     const transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST'),
-      port: this.configService.get('SMTP_PORT'),
+      port: Number(this.configService.get('SMTP_PORT')),
       secure: false,
       auth: {
         user: this.configService.get('SMTP_USER'),
@@ -117,7 +117,7 @@ export class NotificationsService {
   private async sendEmail(offer: any, targetEmail: string) {
     const transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST'),
-      port: this.configService.get('SMTP_PORT'),
+      port: Number(this.configService.get('SMTP_PORT')),
       secure: false,
       auth: {
         user: this.configService.get('SMTP_USER'),

@@ -110,8 +110,12 @@ export class AuthService {
       .single();
 
     if (data) {
-      await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
-      this.logger.log(`E-mail de confirmação enviado para @${data.login} (${enabled ? 'ON' : 'OFF'})`);
+      try {
+        await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
+        this.logger.log(`E-mail de confirmação enviado para @${data.login} (${enabled ? 'ON' : 'OFF'})`);
+      } catch (mailError) {
+        this.logger.error(`Erro ao enviar e-mail de status para @${data.login}:`, mailError.message);
+      }
     }
 
     return data;
