@@ -2,17 +2,25 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
+import { createClient } from '@supabase/supabase-js';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
   private apiToken = '';
   private tokenExpiresAt = 0;
+  private supabase;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.supabase = createClient(
+      this.configService.get('SUPABASE_URL') || '',
+      this.configService.get('SUPABASE_KEY') || ''
+    );
+  }
 
   async onModuleInit() {
     await this.refreshToken();
@@ -219,11 +227,41 @@ export class AppService implements OnModuleInit {
       this.cachedOffers = fetchedOffers;
       this.lastFetchTime = Date.now();
       this.logger.log(`Cache atualizado: ${this.cachedOffers.length} vagas.`);
+
+      // Gravar novas vagas na base de dados para o bot de notificações
+      if (fetchedOffers.length > 0) {
+        const dbOffers = fetchedOffers.map(o => ({
+          id: o.id.toString(),
+          title: o.title,
+          company: o.company?.name || 'Empresa Privada',
+          location: o.full_address,
+          contract_type: o.contract_type,
+          salary: o.salary,
+          link: `https://profile.intra.42.fr/internship_offers/${o.id}`,
+          created_at: o.created_at,
+        }));
+
+        const { error } = await this.supabase
+          .from('internship_offers')
+          .upsert(dbOffers, { onConflict: 'id' });
+
+        if (error) {
+          this.logger.error('Erro ao guardar vagas no Supabase:', error.message);
+        } else {
+          this.logger.log('Vagas sincronizadas com a base de dados com sucesso.');
+        }
+      }
     } catch (error) {
       this.logger.error('Erro ao buscar na 42:', error.response?.data || error.message);
     } finally {
       this.fetchPromise = null;
     }
+  }
+
+  @Cron('0 * * * *') // Sincroniza a cada hora
+  async syncOffersCron() {
+    this.logger.log('Iniciando sincronização periódica de vagas...');
+    await this.performFetch();
   }
 
   getHealth() {

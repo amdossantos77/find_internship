@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class NotificationsService {
@@ -111,6 +112,7 @@ export class NotificationsService {
     }
   }
 
+  @Cron('0 * * * *') // Executa a cada hora
   async handleCron() {
     this.logger.log('Iniciando busca de novas vagas para notificações...');
     
