@@ -30,4 +30,11 @@ export class AppController {
     this.notificationsService.handleCron();
     return { status: 'Bot triggered' };
   }
+
+  @Get('test-job-email')
+  async testJobEmail(@Query('email') email: string) {
+    if (!email) return { error: 'Email query param is required' };
+    await this.notificationsService.sendTestEmail(email);
+    return { status: 'Test email sent to ' + email };
+  }
 }
