@@ -111,7 +111,6 @@ export class NotificationsService {
     }
   }
 
-  // O resto do código (handleCron, checkOffersForUser) continua igual...
   async handleCron() {
     this.logger.log('Iniciando busca de novas vagas para notificações...');
     
