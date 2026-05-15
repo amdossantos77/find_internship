@@ -84,22 +84,11 @@ export class NotificationsService {
   }
 
   async sendStatusEmail(email: string, login: string, enabled: boolean) {
-    const port = Number(this.configService.get('SMTP_PORT'));
-    const transporter = (nodemailer.createTransport as any)({
-      host: this.configService.get('SMTP_HOST'),
-      port: port,
-      secure: port === 465,
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
       auth: {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
-      },
-      family: 4,
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
-      tls: {
-        family: 4,
-        rejectUnauthorized: false,
       },
     });
 
@@ -126,22 +115,11 @@ export class NotificationsService {
   }
 
   private async sendEmail(offer: any, targetEmail: string) {
-    const port = Number(this.configService.get('SMTP_PORT'));
-    const transporter = (nodemailer.createTransport as any)({
-      host: this.configService.get('SMTP_HOST'),
-      port: port,
-      secure: port === 465,
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
       auth: {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASS'),
-      },
-      family: 4,
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
-      tls: {
-        family: 4,
-        rejectUnauthorized: false,
       },
     });
 
