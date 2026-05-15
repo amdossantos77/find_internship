@@ -67,12 +67,15 @@ export class NotificationsService {
           .from('notified_offers')
           .select('id')
           .eq('offer_id', offer.id)
-          // .eq('user_id', user.external_id) // Idealmente teríamos user_id aqui também
+          .eq('user_id', user.external_id)
           .single();
 
         if (!alreadyNotified) {
           await this.sendEmail(offer, user.email);
-          await this.supabase.from('notified_offers').insert([{ offer_id: offer.id }]);
+          await this.supabase.from('notified_offers').insert([{ 
+            offer_id: offer.id, 
+            user_id: user.external_id 
+          }]);
           this.logger.log(`Notificação enviada para @${user.login}: ${offer.title}`);
         }
       }

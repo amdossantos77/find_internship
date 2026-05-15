@@ -119,7 +119,7 @@ function App() {
       if (expertise) params.append('expertise_id', expertise);
       if (target) params.append('target', target);
       
-      const response = await fetch(`http://localhost:3002/offers?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/offers?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.status === 401) {
