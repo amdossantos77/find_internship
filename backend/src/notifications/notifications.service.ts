@@ -93,8 +93,8 @@ export class NotificationsService {
       },
     });
 
-    await transporter.sendMail({
-      from: `"Find Internship Bot" <${this.configService.get('SMTP_USER')}>`,
+    const info = await transporter.sendMail({
+      from: this.configService.get('SMTP_USER'),
       to: email,
       subject: `🔔 Bot de Vagas: ${enabled ? 'ATIVADO' : 'DESATIVADO'}`,
       html: `
@@ -112,6 +112,7 @@ export class NotificationsService {
         </div>
       `,
     });
+    return info;
   }
 
   private async sendEmail(offer: any, targetEmail: string) {
@@ -131,7 +132,7 @@ export class NotificationsService {
     };
 
     const info = await transporter.sendMail({
-      from: `"Find Internship Bot" <${this.configService.get('SMTP_USER')}>`,
+      from: this.configService.get('SMTP_USER'),
       to: targetEmail,
       subject: `📢 Nova Vaga: ${offer.title} - ${offer.company_name}`,
       html: `

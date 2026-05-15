@@ -75,6 +75,7 @@ export class AuthService {
         login: userData.login,
         email: userData.email,
         last_login: new Date().toISOString(),
+        notifications_enabled: false,
       };
 
       const { data: dbUser } = await this.supabase
@@ -88,7 +89,7 @@ export class AuthService {
         login: userData.login, 
         email: userData.email,
         image: userData.image?.link,
-        notifications_enabled: dbUser?.notifications_enabled ?? true
+        notifications_enabled: dbUser?.notifications_enabled ?? false
       };
       
       return {
@@ -116,8 +117,8 @@ export class AuthService {
 
     if (data) {
       try {
-        await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
-        this.logger.log(`E-mail de confirmação enviado para @${data.login} (${enabled ? 'ON' : 'OFF'})`);
+        const info = await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
+        this.logger.log(`E-mail de confirmação enviado para @${data.login}: ${info.messageId}`);
       } catch (mailError) {
         this.logger.error(`Erro ao enviar e-mail de status para @${data.login}:`, mailError.message);
       }
