@@ -75,7 +75,6 @@ export class AuthService {
         login: userData.login,
         email: userData.email,
         last_login: new Date().toISOString(),
-        notifications_enabled: false,
       };
 
       const { data: dbUser } = await this.supabase
