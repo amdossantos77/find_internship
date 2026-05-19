@@ -22,6 +22,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   ],
   providers: [AuthService],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

@@ -15,16 +15,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
+const notifications_service_1 = require("./notifications/notifications.service");
+const jwt_auth_guard_1 = require("./auth/jwt-auth.guard");
 let AppController = class AppController {
     appService;
-    constructor(appService) {
+    notificationsService;
+    constructor(appService, notificationsService) {
         this.appService = appService;
+        this.notificationsService = notificationsService;
     }
     getHealth() {
         return this.appService.getHealth();
     }
     async getOffers(city, country, contract_type, expertise_id, target) {
         return this.appService.getOffers(city, country, contract_type, expertise_id, target);
+    }
+    async triggerBot() {
+        this.notificationsService.handleCron();
+        return { status: 'Bot triggered' };
     }
 };
 exports.AppController = AppController;
@@ -35,6 +43,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getHealth", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('offers'),
     __param(0, (0, common_1.Query)('city')),
     __param(1, (0, common_1.Query)('country')),
@@ -45,8 +54,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getOffers", null);
+__decorate([
+    (0, common_1.Get)('trigger-bot'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "triggerBot", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
-    __metadata("design:paramtypes", [app_service_1.AppService])
+    __metadata("design:paramtypes", [app_service_1.AppService,
+        notifications_service_1.NotificationsService])
 ], AppController);
 //# sourceMappingURL=app.controller.js.map

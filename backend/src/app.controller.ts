@@ -1,6 +1,7 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { NotificationsService } from './notifications/notifications.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Controller()
 export class AppController {
@@ -14,6 +15,7 @@ export class AppController {
     return this.appService.getHealth();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('offers')
   async getOffers(
     @Query('city') city?: string,

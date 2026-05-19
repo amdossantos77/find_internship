@@ -19,7 +19,9 @@ export declare class AuthService {
             email: any;
             image: any;
             notifications_enabled: any;
+            filters: any;
         };
     }>;
     toggleNotifications(userId: number, enabled: boolean): Promise<any>;
+    updateFilters(userId: number, filters: any): Promise<any>;
 }

@@ -15,15 +15,19 @@ const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
 const config_1 = require("@nestjs/config");
 const rxjs_1 = require("rxjs");
+const supabase_js_1 = require("@supabase/supabase-js");
+const schedule_1 = require("@nestjs/schedule");
 let AppService = AppService_1 = class AppService {
     httpService;
     configService;
     logger = new common_1.Logger(AppService_1.name);
     apiToken = '';
     tokenExpiresAt = 0;
+    supabase;
     constructor(httpService, configService) {
         this.httpService = httpService;
         this.configService = configService;
+        this.supabase = (0, supabase_js_1.createClient)(this.configService.get('SUPABASE_URL') || '', this.configService.get('SUPABASE_KEY') || '');
     }
     async onModuleInit() {
         await this.refreshToken();
@@ -103,6 +107,21 @@ let AppService = AppService_1 = class AppService {
             });
             this.logger.log(`Vagas filtradas por Skill (${skillQuery}): ${results.length}`);
         }
+        if (contract_type && contract_type.trim() !== "") {
+            results = results.filter(offer => (offer.contract_type || "").toLowerCase().includes(contract_type.toLowerCase()));
+            this.logger.log(`Vagas filtradas por Contrato (${contract_type}): ${results.length}`);
+        }
+        if (target && target.trim() !== "") {
+            results = results.filter(offer => {
+                const content = `${offer.title} ${offer.little_description}`.toLowerCase();
+                if (target === 'student')
+                    return content.includes('student') || content.includes('stagiaire');
+                if (target === 'alumni')
+                    return content.includes('alumni') || content.includes('graduate');
+                return true;
+            });
+            this.logger.log(`Vagas filtradas por Target (${target}): ${results.length}`);
+        }
         return results.map((offer) => {
             const addressParts = (offer.full_address || "").split(',').map(p => p.trim());
             const extractedCountry = addressParts.length > 0 ? addressParts[addressParts.length - 1] : null;
@@ -157,14 +176,38 @@ let AppService = AppService_1 = class AppService {
                     return new Date(offer.invalid_at) > now;
                 });
                 fetchedOffers.push(...validOnes);
-                if (offers.length < 100)
+                if (offers.length < 100) {
                     hasMore = false;
-                else
+                }
+                else {
                     page++;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
             }
             this.cachedOffers = fetchedOffers;
             this.lastFetchTime = Date.now();
             this.logger.log(`Cache atualizado: ${this.cachedOffers.length} vagas.`);
+            if (fetchedOffers.length > 0) {
+                const dbOffers = fetchedOffers.map(o => ({
+                    id: o.id.toString(),
+                    title: o.title,
+                    company: o.company?.name || 'Empresa Privada',
+                    location: o.full_address,
+                    contract_type: o.contract_type,
+                    salary: o.salary,
+                    link: `https://profile.intra.42.fr/internship_offers/${o.id}`,
+                    created_at: o.created_at,
+                }));
+                const { error } = await this.supabase
+                    .from('internship_offers')
+                    .upsert(dbOffers, { onConflict: 'id' });
+                if (error) {
+                    this.logger.error('Erro ao guardar vagas no Supabase:', error.message);
+                }
+                else {
+                    this.logger.log('Vagas sincronizadas com a base de dados com sucesso.');
+                }
+            }
         }
         catch (error) {
             this.logger.error('Erro ao buscar na 42:', error.response?.data || error.message);
@@ -172,6 +215,10 @@ let AppService = AppService_1 = class AppService {
         finally {
             this.fetchPromise = null;
         }
+    }
+    async syncOffersCron() {
+        this.logger.log('Iniciando sincronização periódica de vagas...');
+        await this.performFetch();
     }
     getHealth() {
         return {
@@ -183,6 +230,12 @@ let AppService = AppService_1 = class AppService {
     }
 };
 exports.AppService = AppService;
+__decorate([
+    (0, schedule_1.Cron)('0 * * * *'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppService.prototype, "syncOffersCron", null);
 exports.AppService = AppService = AppService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [axios_1.HttpService,

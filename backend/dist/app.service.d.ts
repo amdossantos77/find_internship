@@ -7,6 +7,7 @@ export declare class AppService implements OnModuleInit {
     private readonly logger;
     private apiToken;
     private tokenExpiresAt;
+    private supabase;
     constructor(httpService: HttpService, configService: ConfigService);
     onModuleInit(): Promise<void>;
     private refreshToken;
@@ -31,6 +32,7 @@ export declare class AppService implements OnModuleInit {
         is_remote: any;
     }[]>;
     private performFetch;
+    syncOffersCron(): Promise<void>;
     getHealth(): {
         status: string;
         apiConnected: boolean;

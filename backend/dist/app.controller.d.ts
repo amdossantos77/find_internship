@@ -1,7 +1,9 @@
 import { AppService } from './app.service';
+import { NotificationsService } from './notifications/notifications.service';
 export declare class AppController {
     private readonly appService;
-    constructor(appService: AppService);
+    private readonly notificationsService;
+    constructor(appService: AppService, notificationsService: NotificationsService);
     getHealth(): {
         status: string;
         apiConnected: boolean;
@@ -23,4 +25,7 @@ export declare class AppController {
         company_logo: any;
         is_remote: any;
     }[]>;
+    triggerBot(): Promise<{
+        status: string;
+    }>;
 }

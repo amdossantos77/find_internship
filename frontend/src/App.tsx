@@ -39,12 +39,32 @@ function App() {
   const [expertise, setExpertise] = useState('');
   const [target, setTarget] = useState('');
   const [onlyRemote, setOnlyRemote] = useState(false);
-  const [user, setUser] = useState<{login: string, image: string, userId: number, notifications_enabled: boolean} | null>(null);
+  const [user, setUser] = useState<{login: string, image: string, userId: number, notifications_enabled: boolean, filters?: any} | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [savingFilters, setSavingFilters] = useState(false);
+
+  const isTokenExpired = (tokenStr: string | null): boolean => {
+    if (!tokenStr) return true;
+    try {
+      const parts = tokenStr.split('.');
+      if (parts.length !== 3) return true;
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return true;
+    }
+  };
 
   useEffect(() => {
     if (token) {
+      if (isTokenExpired(token)) {
+        handleLogout();
+        return;
+      }
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const userStr = new URLSearchParams(window.location.search).get('user');
@@ -60,9 +80,18 @@ function App() {
           login: payload.login, 
           image: payload.image,
           userId: parsedUser?.userId || payload.userId,
-          notifications_enabled: isEnabled
+          notifications_enabled: isEnabled,
+          filters: parsedUser?.filters || payload.filters || {}
         });
         setNotificationsEnabled(isEnabled);
+
+        const savedFilters = parsedUser?.filters || payload.filters || {};
+        if (savedFilters) {
+          if (savedFilters.country) setCountry(savedFilters.country);
+          if (savedFilters.contract_type) setContractType(savedFilters.contract_type);
+          if (savedFilters.expertise) setExpertise(savedFilters.expertise);
+          if (savedFilters.city) setCity(savedFilters.city);
+        }
       } catch (e) {
         console.error("Erro ao decodificar token", e);
       }
@@ -78,9 +107,17 @@ function App() {
       console.log('Tentando alternar notificações para:', { userId: user.userId, enabled: newState });
       const response = await fetch(`${API_BASE_URL}/auth/notifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(user.userId), enabled: newState }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ enabled: newState }),
       });
+      
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
       
       if (response.ok) {
         const data = await response.json();
@@ -98,6 +135,44 @@ function App() {
     }
   };
 
+  const handleSaveFilters = async () => {
+    if (!token || !user) return;
+    setSavingFilters(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/filters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          filters: {
+            country,
+            contract_type: contractType,
+            expertise,
+            city
+          }
+        })
+      });
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (response.ok) {
+        const data = await response.json();
+        setUser(prev => prev ? { ...prev, filters: data.filters || {} } : null);
+        alert('Filtros de alerta por e-mail gravados com sucesso!');
+      } else {
+        alert('Erro ao gravar filtros.');
+      }
+    } catch (error) {
+      console.error("Erro ao gravar filtros", error);
+      alert('Erro de rede ao gravar filtros.');
+    } finally {
+      setSavingFilters(false);
+    }
+  };
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedCity(city);
@@ -111,6 +186,10 @@ function App() {
     const userFromUrl = urlParams.get('user');
 
     if (tokenFromUrl) {
+      if (isTokenExpired(tokenFromUrl)) {
+        handleLogout();
+        return;
+      }
       localStorage.setItem(STORAGE_KEY, tokenFromUrl);
       setToken(tokenFromUrl);
       
@@ -119,12 +198,23 @@ function App() {
           const parsedUser = JSON.parse(decodeURIComponent(userFromUrl));
           setUser(parsedUser);
           setNotificationsEnabled(parsedUser.notifications_enabled ?? true);
+          if (parsedUser.filters) {
+            if (parsedUser.filters.country) setCountry(parsedUser.filters.country);
+            if (parsedUser.filters.contract_type) setContractType(parsedUser.filters.contract_type);
+            if (parsedUser.filters.expertise) setExpertise(parsedUser.filters.expertise);
+            if (parsedUser.filters.city) setCity(parsedUser.filters.city);
+          }
         } catch (e) {
           console.error("Erro ao processar dados do user na URL", e);
         }
       }
       
       window.history.replaceState({}, document.title, window.location.pathname); 
+    } else {
+      const storedToken = localStorage.getItem(STORAGE_KEY);
+      if (storedToken && isTokenExpired(storedToken)) {
+        handleLogout();
+      }
     }
   }, []);
 
@@ -162,12 +252,16 @@ function App() {
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
   const handleLogout = () => {
-    // Apenas limpa o estado local e volta para a tela de login
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('notifications_enabled');
     setToken(null);
     setUser(null);
     setOffers([]);
+    setCountry('');
+    setContractType('');
+    setExpertise('');
+    setCity('');
+    setDebouncedCity('');
   };
 
   if (!token) {
@@ -199,7 +293,7 @@ function App() {
     <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans selection:bg-[#00BABC]/20 relative">
       
       {/* BOTÃO DE LOGOUT E NOTIFICAÇÕES - CANTO SUPERIOR DIREITO */}
-      <div className="fixed top-8 right-8 z-[100] flex flex-col gap-3 items-end">
+      <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 items-end">
         <button 
           onClick={handleLogout}
           className="p-3 bg-slate-900 border border-slate-700 hover:border-rose-500/50 hover:text-rose-500 rounded-2xl transition-all shadow-2xl text-slate-500 group"
@@ -358,6 +452,19 @@ function App() {
               <Globe className="w-3.5 h-3.5" /> 100% REMOTE
               {onlyRemote && <CheckCircle2 className="w-3.5 h-3.5" />}
             </div>
+
+            <button
+              onClick={handleSaveFilters}
+              disabled={savingFilters}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border md:ml-auto ${
+                savingFilters 
+                  ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 active:scale-95'
+              }`}
+            >
+              <Bell className="w-3.5 h-3.5" /> 
+              {savingFilters ? 'A GUARDAR...' : 'SALVAR ALERTA'}
+            </button>
           </motion.div>
         </header>
 

@@ -1,7 +1,8 @@
-import { Controller, Get, Query, Res, Logger, Post, Body } from '@nestjs/common';
+import { Controller, Get, Query, Res, Logger, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -33,8 +34,17 @@ export class AuthController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('notifications')
-  async toggleNotifications(@Body() body: { userId: number, enabled: boolean }) {
-    return this.authService.toggleNotifications(body.userId, body.enabled);
+  async toggleNotifications(@Request() req, @Body() body: { enabled: boolean }) {
+    const userId = req.user.userId;
+    return this.authService.toggleNotifications(userId, body.enabled);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('filters')
+  async updateFilters(@Request() req, @Body() body: { filters: any }) {
+    const userId = req.user.userId;
+    return this.authService.updateFilters(userId, body.filters);
   }
 }

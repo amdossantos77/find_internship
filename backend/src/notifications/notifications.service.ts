@@ -138,35 +138,84 @@ export class NotificationsService {
 
   private async checkOffersForUser(user: any) {
     const filters = user.filters || {};
-    const lastLogin = user.last_login;
 
     // 1. Buscar IDs de vagas já notificadas para este utilizador
     const { data: notified } = await this.supabase
       .from('notified_offers')
       .select('offer_id')
-      .eq('user_id', user.userId);
+      .eq('user_id', user.external_id);
 
     const notifiedIds = notified?.map(n => String(n.offer_id)) || [];
 
-    // 2. Buscar novas vagas filtradas
-    let query = this.supabase
+    // 2. Buscar novas vagas dos últimos 7 dias (para evitar perdas com last_login)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const dateStr = sevenDaysAgo.toISOString();
+
+    const { data: offers, error: offerError } = await this.supabase
       .from('internship_offers')
       .select('*')
-      .gt('created_at', lastLogin);
-
-    if (filters.contract_type && filters.contract_type !== 'all') {
-      query = query.eq('contract_type', filters.contract_type);
-    }
-
-    const { data: offers, error: offerError } = await query;
+      .gt('created_at', dateStr);
 
     if (offerError) {
       this.logger.error(`Erro ao buscar vagas para ${user.login}:`, offerError.message);
       return;
     }
 
-    // 3. Filtrar as que já foram enviadas
-    const newOffers = offers?.filter(o => !notifiedIds.includes(String(o.id))) || [];
+    let filteredOffers = offers || [];
+
+    // 3. Aplicar Filtro de País
+    const countryMapping = {
+      'FR': 'France', 'ES': 'Spain', 'PT': 'Portugal', 'BR': 'Brazil', 'AO': 'Angola',
+      'BE': 'Belgium', 'DE': 'Germany', 'CH': 'Switzerland', 'IT': 'Italy', 'MA': 'Morocco',
+      'LU': 'Luxembourg', 'UK': 'United Kingdom', 'US': 'United States'
+    };
+
+    if (filters.country && filters.country.trim() !== "") {
+      const targetCountry = (countryMapping[filters.country.trim().toUpperCase()] || filters.country.trim()).toLowerCase();
+      filteredOffers = filteredOffers.filter(offer => 
+        (offer.location || "").toLowerCase().includes(targetCountry)
+      );
+    }
+
+    // Filtro de Cidade
+    if (filters.city && filters.city.trim() !== "") {
+      const cityQuery = filters.city.trim().toLowerCase();
+      filteredOffers = filteredOffers.filter(offer => 
+        (offer.location || "").toLowerCase().includes(cityQuery)
+      );
+    }
+
+    // Filtro de Skill (Keywords)
+    if (filters.expertise && filters.expertise.trim() !== "") {
+      const skillQuery = filters.expertise.toLowerCase();
+      const skillKeywords = {
+        'java': ['java', 'spring', 'boot', 'jee', 'hibernate', 'maven'],
+        'node': ['node', 'express', 'nest', 'typescript', 'js', 'javascript', 'backend'],
+        'python': ['python', 'django', 'flask', 'ai', 'ia', 'data', 'intelligence', 'pandas'],
+        'react': ['react', 'vue', 'frontend', 'angular', 'web', 'html', 'css', 'js'],
+        'mobile': ['mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin'],
+        'c++': ['c++', 'c ', 'embedded', 'kernel', 'unix', 'linux', 'system'],
+        'security': ['security', 'cyber', 'pentest', 'network', 'réseau', 'sécurité'],
+        'php': ['php', 'laravel', 'symfony', 'mysql'],
+        'web': ['web', 'html', 'css', 'javascript', 'frontend']
+      };
+      const keywords = skillKeywords[skillQuery] || [skillQuery];
+      filteredOffers = filteredOffers.filter(offer => {
+        const content = `${offer.title} ${offer.little_description || ''}`.toLowerCase();
+        return keywords.some(kw => content.includes(kw));
+      });
+    }
+
+    // Filtro de Contrato
+    if (filters.contract_type && filters.contract_type.trim() !== "") {
+      filteredOffers = filteredOffers.filter(offer => 
+        (offer.contract_type || "").toLowerCase().includes(filters.contract_type.toLowerCase())
+      );
+    }
+
+    // 4. Filtrar as que já foram enviadas
+    const newOffers = filteredOffers.filter(o => !notifiedIds.includes(String(o.id)));
 
     if (newOffers.length > 0) {
       this.logger.log(`Encontradas ${newOffers.length} novas vagas reais para @${user.login}.`);
@@ -175,10 +224,10 @@ export class NotificationsService {
         try {
           await this.sendEmail(offer, user.email);
           
-          // 4. Registar na tabela notified_offers para não repetir e para a tabela não estar vazia
+          // Registar na tabela notified_offers
           await this.supabase.from('notified_offers').insert([{
             offer_id: Number(offer.id),
-            user_id: Number(user.userId)
+            user_id: Number(user.external_id)
           }]);
         } catch (e) {
           this.logger.error(`Erro ao processar vaga ${offer.id} para ${user.login}:`, e.message);

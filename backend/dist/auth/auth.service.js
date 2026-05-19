@@ -34,24 +34,22 @@ let AuthService = AuthService_1 = class AuthService {
     }
     getLoginUrl() {
         const clientId = this.configService.get('API_42_CLIENT_ID');
-        const redirectUri = this.configService.get('OAUTH_REDIRECT_URI') || '';
+        const redirectUri = this.configService.get('OAUTH_REDIRECT_URI') || 'http://localhost:5173/auth/callback';
         const apiUrl = this.configService.get('API_42_URL') || 'https://api.intra.42.fr';
         return `${apiUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&prompt=login`;
     }
     async validateUser(code) {
-        const clientId = this.configService.get('API_42_CLIENT_ID');
-        const clientSecret = this.configService.get('API_42_CLIENT_SECRET');
-        const redirectUri = this.configService.get('OAUTH_REDIRECT_URI') || '';
+        const body = {
+            grant_type: 'authorization_code',
+            client_id: this.configService.get('API_42_CLIENT_ID'),
+            client_secret: this.configService.get('API_42_CLIENT_SECRET'),
+            code: code,
+            redirect_uri: this.configService.get('OAUTH_REDIRECT_URI') || '',
+        };
         const apiUrl = this.configService.get('API_42_URL') || 'https://api.intra.42.fr';
         try {
-            this.logger.log(`Trocando código por token para: ${redirectUri}`);
-            const tokenResponse = await (0, rxjs_1.lastValueFrom)(this.httpService.post(`${apiUrl}/oauth/token`, {
-                grant_type: 'authorization_code',
-                client_id: clientId,
-                client_secret: clientSecret,
-                code: code,
-                redirect_uri: redirectUri,
-            }, {
+            this.logger.log(`Trocando código por token para: ${body.redirect_uri}`);
+            const tokenResponse = await (0, rxjs_1.lastValueFrom)(this.httpService.post(`${apiUrl}/oauth/token`, body, {
                 headers: { 'Content-Type': 'application/json' },
                 timeout: 60000,
                 family: 4
@@ -69,17 +67,36 @@ let AuthService = AuthService_1 = class AuthService {
                 email: userData.email,
                 last_login: new Date().toISOString(),
             };
-            const { data: dbUser } = await this.supabase
+            const { data: existingUser } = await this.supabase
                 .from('app_users')
-                .upsert(userProfile, { onConflict: 'external_id' })
-                .select()
+                .select('*')
+                .eq('external_id', userData.id)
                 .single();
+            let dbUser;
+            if (!existingUser) {
+                const { data: newUser } = await this.supabase
+                    .from('app_users')
+                    .insert([{ ...userProfile, notifications_enabled: false }])
+                    .select()
+                    .single();
+                dbUser = newUser;
+            }
+            else {
+                const { data: updatedUser } = await this.supabase
+                    .from('app_users')
+                    .update(userProfile)
+                    .eq('external_id', userData.id)
+                    .select()
+                    .single();
+                dbUser = updatedUser;
+            }
             const payload = {
                 userId: userData.id,
                 login: userData.login,
                 email: userData.email,
                 image: userData.image?.link,
-                notifications_enabled: dbUser?.notifications_enabled ?? true
+                notifications_enabled: dbUser?.notifications_enabled ?? false,
+                filters: dbUser?.filters ?? {}
             };
             return {
                 access_token: this.jwtService.sign(payload),
@@ -92,15 +109,39 @@ let AuthService = AuthService_1 = class AuthService {
         }
     }
     async toggleNotifications(userId, enabled) {
+        this.logger.log(`Solicitação de toggle para user_id: ${userId} -> ${enabled}`);
         const { data, error } = await this.supabase
             .from('app_users')
             .update({ notifications_enabled: enabled })
             .eq('external_id', userId)
             .select()
             .single();
+        if (error) {
+            this.logger.error(`Erro ao atualizar no Supabase para user ${userId}:`, error.message);
+            throw new common_1.HttpException(error.message, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         if (data) {
-            await this.notificationsService.sendStatusEmail(data.email, data.login, enabled);
-            this.logger.log(`E-mail de confirmação enviado para @${data.login} (${enabled ? 'ON' : 'OFF'})`);
+            this.notificationsService.sendStatusEmail(data.email, data.login, enabled)
+                .then(info => {
+                this.logger.log(`E-mail de confirmação enviado para @${data.login}: ${info?.id}`);
+            })
+                .catch(mailError => {
+                this.logger.error(`Erro ao enviar e-mail de status para @${data.login}: ${mailError.message}`);
+            });
+        }
+        return data;
+    }
+    async updateFilters(userId, filters) {
+        this.logger.log(`Solicitação de atualização de filtros para user_id: ${userId}`);
+        const { data, error } = await this.supabase
+            .from('app_users')
+            .update({ filters: filters })
+            .eq('external_id', userId)
+            .select()
+            .single();
+        if (error) {
+            this.logger.error(`Erro ao atualizar filtros no Supabase para user ${userId}:`, error.message);
+            throw new common_1.HttpException(error.message, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return data;
     }

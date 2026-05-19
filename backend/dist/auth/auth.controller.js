@@ -16,11 +16,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
+const config_1 = require("@nestjs/config");
+const jwt_auth_guard_1 = require("./jwt-auth.guard");
 let AuthController = AuthController_1 = class AuthController {
     authService;
+    configService;
     logger = new common_1.Logger(AuthController_1.name);
-    constructor(authService) {
+    constructor(authService, configService) {
         this.authService = authService;
+        this.configService = configService;
     }
     async login(res) {
         const url = this.authService.getLoginUrl();
@@ -28,18 +32,25 @@ let AuthController = AuthController_1 = class AuthController {
         return res.redirect(url);
     }
     async callback(code, res) {
+        const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
         try {
             this.logger.log('Recebido callback da 42 com código.');
-            const result = await this.authService.validateUser(code);
-            return res.redirect(`http://localhost:5173?secure_session_id=${result.access_token}`);
+            const data = await this.authService.validateUser(code);
+            const userStr = encodeURIComponent(JSON.stringify(data.user));
+            return res.redirect(`${frontendUrl}?token=${data.access_token}&user=${userStr}`);
         }
         catch (error) {
             this.logger.error('Erro no callback de autenticação:', error.message);
-            return res.redirect('http://localhost:5173?error=auth_failed');
+            return res.redirect(`${frontendUrl}?error=auth_failed`);
         }
     }
-    async toggleNotifications(body) {
-        return this.authService.toggleNotifications(body.userId, body.enabled);
+    async toggleNotifications(req, body) {
+        const userId = req.user.userId;
+        return this.authService.toggleNotifications(userId, body.enabled);
+    }
+    async updateFilters(req, body) {
+        const userId = req.user.userId;
+        return this.authService.updateFilters(userId, body.filters);
     }
 };
 exports.AuthController = AuthController;
@@ -59,14 +70,26 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "callback", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('notifications'),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "toggleNotifications", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('filters'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "updateFilters", null);
 exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        config_1.ConfigService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

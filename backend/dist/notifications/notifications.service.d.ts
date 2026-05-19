@@ -1,12 +1,12 @@
-import { AppService } from '../app.service';
 import { ConfigService } from '@nestjs/config';
 export declare class NotificationsService {
-    private readonly appService;
-    private readonly configService;
+    private configService;
     private readonly logger;
+    private resend;
     private supabase;
-    constructor(appService: AppService, configService: ConfigService);
-    handleCron(): Promise<void>;
-    sendStatusEmail(email: string, login: string, enabled: boolean): Promise<void>;
+    constructor(configService: ConfigService);
+    sendStatusEmail(email: string, login: string, enabled: boolean): Promise<import("resend").CreateEmailResponseSuccess | null>;
     private sendEmail;
+    handleCron(): Promise<void>;
+    private checkOffersForUser;
 }

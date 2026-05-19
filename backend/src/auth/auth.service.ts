@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -110,7 +110,8 @@ export class AuthService {
         login: userData.login,
         email: userData.email,
         image: userData.image?.link,
-        notifications_enabled: dbUser?.notifications_enabled ?? false
+        notifications_enabled: dbUser?.notifications_enabled ?? false,
+        filters: dbUser?.filters ?? {}
       };
 
       return {
@@ -134,6 +135,7 @@ export class AuthService {
 
     if (error) {
       this.logger.error(`Erro ao atualizar no Supabase para user ${userId}:`, error.message);
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     if (data) {
@@ -145,6 +147,23 @@ export class AuthService {
         .catch(mailError => {
           this.logger.error(`Erro ao enviar e-mail de status para @${data.login}: ${mailError.message}`);
         });
+    }
+
+    return data;
+  }
+
+  async updateFilters(userId: number, filters: any) {
+    this.logger.log(`Solicitação de atualização de filtros para user_id: ${userId}`);
+    const { data, error } = await this.supabase
+      .from('app_users')
+      .update({ filters: filters })
+      .eq('external_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      this.logger.error(`Erro ao atualizar filtros no Supabase para user ${userId}:`, error.message);
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return data;
