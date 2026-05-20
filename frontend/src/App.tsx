@@ -135,8 +135,22 @@ function App() {
     }
   };
 
-  const handleSaveFilters = async () => {
+  const handleAddAlert = async () => {
     if (!token || !user) return;
+    
+    // Preparar novo filtro
+    const newFilter = {
+      country,
+      contract_type: contractType,
+      expertise,
+      city,
+      only_remote: onlyRemote,
+      id: Date.now() // ID local temporal para gestão simples
+    };
+
+    const currentFilters = Array.isArray(user.filters) ? user.filters : [];
+    const updatedFilters = [...currentFilters, newFilter];
+
     setSavingFilters(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/filters`, {
@@ -145,31 +159,51 @@ function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          filters: {
-            country,
-            contract_type: contractType,
-            expertise,
-            city
-          }
-        })
+        body: JSON.stringify({ filters: updatedFilters })
       });
+      
       if (response.status === 401) {
         handleLogout();
         return;
       }
+
       if (response.ok) {
         const data = await response.json();
-        setUser(prev => prev ? { ...prev, filters: data.filters || {} } : null);
-        alert('Filtros de alerta por e-mail gravados com sucesso!');
+        setUser(prev => prev ? { ...prev, filters: data.filters || [] } : null);
+        alert('Novo alerta adicionado com sucesso!');
       } else {
-        alert('Erro ao gravar filtros.');
+        alert('Erro ao guardar alerta.');
       }
     } catch (error) {
-      console.error("Erro ao gravar filtros", error);
-      alert('Erro de rede ao gravar filtros.');
+      console.error("Erro ao guardar alerta", error);
+      alert('Erro de rede ao guardar alerta.');
     } finally {
       setSavingFilters(false);
+    }
+  };
+
+  const handleRemoveAlert = async (alertId: number) => {
+    if (!token || !user) return;
+    
+    const currentFilters = Array.isArray(user.filters) ? user.filters : [];
+    const updatedFilters = currentFilters.filter((f: any) => f.id !== alertId);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/filters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ filters: updatedFilters })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUser(prev => prev ? { ...prev, filters: data.filters || [] } : null);
+      }
+    } catch (error) {
+      console.error("Erro ao remover alerta", error);
     }
   };
 
@@ -454,7 +488,7 @@ function App() {
             </div>
 
             <button
-              onClick={handleSaveFilters}
+              onClick={handleAddAlert}
               disabled={savingFilters}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border md:ml-auto ${
                 savingFilters 
@@ -463,9 +497,50 @@ function App() {
               }`}
             >
               <Bell className="w-3.5 h-3.5" /> 
-              {savingFilters ? 'A GUARDAR...' : 'SALVAR ALERTA'}
+              {savingFilters ? 'A GUARDAR...' : 'ADICIONAR ALERTA'}
             </button>
           </motion.div>
+
+          {/* ACTIVE ALERTS LIST */}
+          {user && Array.isArray(user.filters) && user.filters.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-6 flex flex-wrap gap-3"
+            >
+              <div className="w-full text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> ALERTAS ATIVOS ({user.filters.length})
+              </div>
+              {user.filters.map((f: any) => (
+                <div 
+                  key={f.id} 
+                  className="bg-slate-900/80 border border-slate-800 rounded-2xl px-4 py-3 flex items-center gap-4 group hover:border-[#00BABC]/30 transition-all shadow-xl"
+                >
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-white uppercase tracking-tight">
+                        {f.country || 'Global'} {f.city ? `(${f.city})` : ''}
+                      </span>
+                      <span className="w-1 h-1 bg-slate-700 rounded-full" />
+                      <span className="text-[10px] font-bold text-[#00BABC] uppercase">
+                        {f.contract_type || 'Qualquer'}
+                      </span>
+                    </div>
+                    <div className="text-[9px] font-medium text-slate-500 mt-0.5 flex gap-2">
+                      {f.expertise && <span>• {f.expertise}</span>}
+                      {f.only_remote && <span className="text-blue-400">• Remote Only</span>}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleRemoveAlert(f.id)}
+                    className="p-2 bg-slate-800 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                    title="Remover Alerta"
+                  >
+                    <LogOut size={12} />
+                  </button>
+                </div>
+              ))}
+            </motion.div>
+          )}
         </header>
 
         {/* LISTING SECTION */}

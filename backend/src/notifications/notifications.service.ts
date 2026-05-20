@@ -137,7 +137,9 @@ export class NotificationsService {
   }
 
   private async checkOffersForUser(user: any) {
-    const filters = user.filters || {};
+    const filterList = Array.isArray(user.filters) ? user.filters : (user.filters && Object.keys(user.filters).length > 0 ? [user.filters] : []);
+    
+    if (filterList.length === 0) return;
 
     // 1. Buscar IDs de vagas já notificadas para este utilizador
     const { data: notified } = await this.supabase
@@ -147,7 +149,7 @@ export class NotificationsService {
 
     const notifiedIds = notified?.map(n => String(n.offer_id)) || [];
 
-    // 2. Buscar novas vagas dos últimos 7 dias (para evitar perdas com last_login)
+    // 2. Buscar novas vagas dos últimos 7 dias
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const dateStr = sevenDaysAgo.toISOString();
@@ -162,69 +164,73 @@ export class NotificationsService {
       return;
     }
 
-    let filteredOffers = offers || [];
-
-    // 3. Aplicar Filtro de País
     const countryMapping = {
       'FR': 'France', 'ES': 'Spain', 'PT': 'Portugal', 'BR': 'Brazil', 'AO': 'Angola',
       'BE': 'Belgium', 'DE': 'Germany', 'CH': 'Switzerland', 'IT': 'Italy', 'MA': 'Morocco',
       'LU': 'Luxembourg', 'UK': 'United Kingdom', 'US': 'United States'
     };
 
-    if (filters.country && filters.country.trim() !== "") {
-      const targetCountry = (countryMapping[filters.country.trim().toUpperCase()] || filters.country.trim()).toLowerCase();
-      filteredOffers = filteredOffers.filter(offer => 
-        (offer.location || "").toLowerCase().includes(targetCountry)
-      );
-    }
+    const skillKeywords = {
+      'java': ['java', 'spring', 'boot', 'jee', 'hibernate', 'maven'],
+      'node': ['node', 'express', 'nest', 'typescript', 'js', 'javascript', 'backend'],
+      'python': ['python', 'django', 'flask', 'ai', 'ia', 'data', 'intelligence', 'pandas'],
+      'react': ['react', 'vue', 'frontend', 'angular', 'web', 'html', 'css', 'js'],
+      'mobile': ['mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin'],
+      'c++': ['c++', 'c ', 'embedded', 'kernel', 'unix', 'linux', 'system'],
+      'security': ['security', 'cyber', 'pentest', 'network', 'réseau', 'sécurité'],
+      'php': ['php', 'laravel', 'symfony', 'mysql'],
+      'web': ['web', 'html', 'css', 'javascript', 'frontend']
+    };
 
-    // Filtro de Cidade
-    if (filters.city && filters.city.trim() !== "") {
-      const cityQuery = filters.city.trim().toLowerCase();
-      filteredOffers = filteredOffers.filter(offer => 
-        (offer.location || "").toLowerCase().includes(cityQuery)
-      );
-    }
+    // 3. Filtrar vagas baseadas na LISTA de alertas (Lógica OR entre alertas)
+    const matchesAnyFilter = (offer: any) => {
+      return filterList.some(filters => {
+        // Filtro de País
+        if (filters.country && filters.country.trim() !== "") {
+          const targetCountry = (countryMapping[filters.country.trim().toUpperCase()] || filters.country.trim()).toLowerCase();
+          if (!(offer.location || "").toLowerCase().includes(targetCountry)) return false;
+        }
 
-    // Filtro de Skill (Keywords)
-    if (filters.expertise && filters.expertise.trim() !== "") {
-      const skillQuery = filters.expertise.toLowerCase();
-      const skillKeywords = {
-        'java': ['java', 'spring', 'boot', 'jee', 'hibernate', 'maven'],
-        'node': ['node', 'express', 'nest', 'typescript', 'js', 'javascript', 'backend'],
-        'python': ['python', 'django', 'flask', 'ai', 'ia', 'data', 'intelligence', 'pandas'],
-        'react': ['react', 'vue', 'frontend', 'angular', 'web', 'html', 'css', 'js'],
-        'mobile': ['mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin'],
-        'c++': ['c++', 'c ', 'embedded', 'kernel', 'unix', 'linux', 'system'],
-        'security': ['security', 'cyber', 'pentest', 'network', 'réseau', 'sécurité'],
-        'php': ['php', 'laravel', 'symfony', 'mysql'],
-        'web': ['web', 'html', 'css', 'javascript', 'frontend']
-      };
-      const keywords = skillKeywords[skillQuery] || [skillQuery];
-      filteredOffers = filteredOffers.filter(offer => {
-        const content = `${offer.title} ${offer.little_description || ''}`.toLowerCase();
-        return keywords.some(kw => content.includes(kw));
+        // Filtro de Cidade
+        if (filters.city && filters.city.trim() !== "") {
+          const cityQuery = filters.city.trim().toLowerCase();
+          if (!(offer.location || "").toLowerCase().includes(cityQuery)) return false;
+        }
+
+        // Filtro de Skill
+        if (filters.expertise && filters.expertise.trim() !== "") {
+          const skillQuery = filters.expertise.toLowerCase();
+          const keywords = skillKeywords[skillQuery] || [skillQuery];
+          const content = `${offer.title} ${offer.little_description || ''}`.toLowerCase();
+          if (!keywords.some(kw => content.includes(kw))) return false;
+        }
+
+        // Filtro de Contrato
+        if (filters.contract_type && filters.contract_type.trim() !== "") {
+          if (!(offer.contract_type || "").toLowerCase().includes(filters.contract_type.toLowerCase())) return false;
+        }
+
+        // NOVO: Filtro Remoto
+        if (filters.only_remote === true) {
+          const content = `${offer.title} ${offer.little_description || ''} ${offer.location || ''}`.toLowerCase();
+          if (!content.includes('remote') && !content.includes('télétravail') && !content.includes('remoto')) return false;
+        }
+
+        return true; // Passou em todos os critérios desta regra (AND interno)
       });
-    }
+    };
 
-    // Filtro de Contrato
-    if (filters.contract_type && filters.contract_type.trim() !== "") {
-      filteredOffers = filteredOffers.filter(offer => 
-        (offer.contract_type || "").toLowerCase().includes(filters.contract_type.toLowerCase())
-      );
-    }
-
-    // 4. Filtrar as que já foram enviadas
-    const newOffers = filteredOffers.filter(o => !notifiedIds.includes(String(o.id)));
+    const newOffers = (offers || []).filter(offer => 
+      !notifiedIds.includes(String(offer.id)) && matchesAnyFilter(offer)
+    );
 
     if (newOffers.length > 0) {
-      this.logger.log(`Encontradas ${newOffers.length} novas vagas reais para @${user.login}.`);
+      this.logger.log(`Encontradas ${newOffers.length} novas vagas reais para @${user.login} baseadas em sua lista de alertas.`);
       
       for (const offer of newOffers) {
         try {
           await this.sendEmail(offer, user.email);
           
-          // Registar na tabela notified_offers
           await this.supabase.from('notified_offers').insert([{
             offer_id: Number(offer.id),
             user_id: Number(user.external_id)

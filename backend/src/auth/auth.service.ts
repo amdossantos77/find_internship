@@ -111,7 +111,9 @@ export class AuthService {
         email: userData.email,
         image: userData.image?.link,
         notifications_enabled: dbUser?.notifications_enabled ?? false,
-        filters: dbUser?.filters ?? {}
+        filters: Array.isArray(dbUser?.filters) 
+          ? dbUser.filters 
+          : (dbUser?.filters && Object.keys(dbUser.filters).length > 0 ? [dbUser.filters] : [])
       };
 
       return {
