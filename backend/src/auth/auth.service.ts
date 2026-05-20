@@ -37,7 +37,8 @@ export class AuthService {
   getLogoutUrl(): string {
     const clientId = this.configService.get<string>('API_42_CLIENT_ID');
     const logoutUrl = 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
-    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI')?.split('/auth/callback')[0] || 'https://find-internship.vercel.app';
+    // Forçar a volta para o Vercel, que é onde o usuário deve pousar após o logout
+    const redirectUri = 'https://find-internship.vercel.app';
     
     return `${logoutUrl}?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}`;
   }
