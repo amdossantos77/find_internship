@@ -296,6 +296,12 @@ function App() {
     setExpertise('');
     setCity('');
     setDebouncedCity('');
+
+    // Redirecionamento para o Logout Global da 42
+    // Agora vai funcionar porque você cadastrou a URL no portal da 42!
+    const logoutUrl = 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
+    const redirectUri = window.location.origin;
+    window.location.href = `${logoutUrl}?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}&client_id=intra`;
   };
 
   if (!token) {
