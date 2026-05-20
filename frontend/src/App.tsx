@@ -297,11 +297,9 @@ function App() {
     setCity('');
     setDebouncedCity('');
 
-    // Redirecionamento para o Logout Global da 42
-    // Agora vai funcionar porque você cadastrou a URL no portal da 42!
-    const logoutUrl = 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
-    const redirectUri = window.location.origin;
-    window.location.href = `${logoutUrl}?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}&client_id=intra`;
+    // Redirecionamento para o Logout Global via Backend
+    // O Backend possui o Client ID correto para evitar o erro de "Invalid redirect uri"
+    window.location.href = `${API_BASE_URL}/auth/logout`;
   };
 
   if (!token) {

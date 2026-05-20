@@ -31,7 +31,15 @@ export class AuthService {
 
     return `${apiUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri,
-    )}&response_type=code&scope=public&prompt=login&max_age=0`;
+    )}&response_type=code&scope=public&prompt=login`;
+  }
+
+  getLogoutUrl(): string {
+    const clientId = this.configService.get<string>('API_42_CLIENT_ID');
+    const logoutUrl = 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
+    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI')?.split('/auth/callback')[0] || 'https://find-internship.vercel.app';
+    
+    return `${logoutUrl}?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}`;
   }
 
   async validateUser(code: string) {

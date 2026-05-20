@@ -20,6 +20,13 @@ export class AuthController {
     return res.redirect(url);
   }
 
+  @Get('logout')
+  async logout(@Res() res: Response) {
+    const url = this.authService.getLogoutUrl();
+    this.logger.log(`Redirecionando para logout global 42: ${url}`);
+    return res.redirect(url);
+  }
+
   @Get('callback')
   async callback(@Query('code') code: string, @Res() res: Response) {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
