@@ -22,3 +22,9 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+
+
+# docs
+RESEND_GUIDE.md
+staff_presentation.md
+analysis_results.md

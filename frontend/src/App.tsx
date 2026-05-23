@@ -1,4 +1,3 @@
-// Final production sync - V2.1
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -25,9 +24,9 @@ interface Offer {
 }
 
 function App() {
-  const STORAGE_KEY = 'FIND_INTERNSHIP_SESSION_FINAL';
+  const SESSION_KEY = 'fi_auth_token';
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem(STORAGE_KEY);
+    return localStorage.getItem(SESSION_KEY);
   });
   
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -104,7 +103,7 @@ function App() {
     setLoadingNotifications(true);
     
     try {
-      console.log('Tentando alternar notificações para:', { userId: user.userId, enabled: newState });
+      console.debug('Synchronizing notification preferences...');
       const response = await fetch(`${API_BASE_URL}/auth/notifications`, {
         method: 'POST',
         headers: { 
@@ -224,7 +223,7 @@ function App() {
         handleLogout();
         return;
       }
-      localStorage.setItem(STORAGE_KEY, tokenFromUrl);
+      localStorage.setItem(SESSION_KEY, tokenFromUrl);
       setToken(tokenFromUrl);
       
       if (userFromUrl) {
@@ -245,7 +244,7 @@ function App() {
       
       window.history.replaceState({}, document.title, window.location.pathname); 
     } else {
-      const storedToken = localStorage.getItem(STORAGE_KEY);
+      const storedToken = localStorage.getItem(SESSION_KEY);
       if (storedToken && isTokenExpired(storedToken)) {
         handleLogout();
       }
@@ -286,7 +285,7 @@ function App() {
   }, [token, debouncedCity, contractType, expertise, target, onlyRemote]);
 
   const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem('notifications_enabled');
     setToken(null);
     setUser(null);

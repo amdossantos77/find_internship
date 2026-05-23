@@ -3,14 +3,13 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { lastValueFrom } from 'rxjs';
-import { createClient } from '@supabase/supabase-js';
-
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private supabase;
+  private supabase: SupabaseClient;
 
   constructor(
     private readonly httpService: HttpService,
@@ -26,117 +25,99 @@ export class AuthService {
 
   getLoginUrl(): string {
     const clientId = this.configService.get<string>('API_42_CLIENT_ID');
-    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI') || 'http://localhost:5173/auth/callback';
+    const redirectUri = this.configService.get<string>('OAUTH_REDIRECT_URI') || 'http://localhost:5173';
     const apiUrl = this.configService.get<string>('API_42_URL') || 'https://api.intra.42.fr';
 
-    return `${apiUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+    return `${apiUrl}/oauth/authorize?prompt=login&approval_prompt=force&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri,
-    )}&response_type=code&scope=public&prompt=login`;
+    )}&response_type=code&scope=public`;
   }
 
   getLogoutUrl(): string {
-    const clientId = this.configService.get<string>('API_42_CLIENT_ID');
-    const logoutUrl = 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
-    // Adicionar a barra no final para garantir o match exato com o portal da 42
-    const redirectUri = 'https://find-internship.vercel.app/';
-    
-    return `${logoutUrl}?post_logout_redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}`;
+    return 'https://auth.42.fr/auth/realms/students-42/protocol/openid-connect/logout';
   }
 
   async validateUser(code: string) {
-    const body = {
+    const apiUrl = this.configService.get<string>('API_42_URL') || 'https://api.intra.42.fr';
+    const payload = {
       grant_type: 'authorization_code',
       client_id: this.configService.get<string>('API_42_CLIENT_ID'),
       client_secret: this.configService.get<string>('API_42_CLIENT_SECRET'),
-      code: code,
-      redirect_uri: this.configService.get<string>('OAUTH_REDIRECT_URI') || '',
+      code,
+      redirect_uri: this.configService.get<string>('OAUTH_REDIRECT_URI'),
     };
-    const apiUrl = this.configService.get<string>('API_42_URL') || 'https://api.intra.42.fr';
 
     try {
-      this.logger.log(`Trocando código por token para: ${body.redirect_uri}`);
-
-      const tokenResponse = await lastValueFrom(
-        this.httpService.post(`${apiUrl}/oauth/token`, body, {
+      const { data: tokens } = await lastValueFrom(
+        this.httpService.post(`${apiUrl}/oauth/token`, payload, {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 60000,
+          timeout: 15000,
           // @ts-ignore
-          family: 4 // Força IPv4 para estabilidade na rede
+          family: 4 
         }),
       );
 
-      const accessToken = tokenResponse.data.access_token;
-
-      const userResponse = await lastValueFrom(
+      const { data: profile } = await lastValueFrom(
         this.httpService.get(`${apiUrl}/v2/me`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          timeout: 60000,
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
+          timeout: 15000,
           // @ts-ignore
           family: 4
         }),
       );
 
-      const userData = userResponse.data;
-
-      // Persistir ou atualizar o utilizador no Supabase
-      const userProfile = {
-        external_id: userData.id,
-        login: userData.login,
-        email: userData.email,
+      const syncData = {
+        external_id: profile.id,
+        login: profile.login,
+        email: profile.email,
         last_login: new Date().toISOString(),
       };
 
-      // 1. Verificar se o utilizador já existe
       const { data: existingUser } = await this.supabase
         .from('app_users')
         .select('*')
-        .eq('external_id', userData.id)
+        .eq('external_id', profile.id)
         .single();
 
       let dbUser;
 
       if (!existingUser) {
-        // 2. Se não existir, criar com notifications_enabled: false
         const { data: newUser } = await this.supabase
           .from('app_users')
-          .insert([{ ...userProfile, notifications_enabled: false }])
+          .insert([{ ...syncData, notifications_enabled: false }])
           .select()
           .single();
         dbUser = newUser;
       } else {
-        // 3. Se já existir, apenas atualizar o perfil (sem tocar nas notificações)
         const { data: updatedUser } = await this.supabase
           .from('app_users')
-          .update(userProfile)
-          .eq('external_id', userData.id)
+          .update(syncData)
+          .eq('external_id', profile.id)
           .select()
           .single();
         dbUser = updatedUser;
       }
 
-      const payload = {
-        userId: userData.id,
-        login: userData.login,
-        email: userData.email,
-        image: userData.image?.link,
+      const userSession = {
+        userId: profile.id,
+        login: profile.login,
+        email: profile.email,
+        image: profile.image?.link,
         notifications_enabled: dbUser?.notifications_enabled ?? false,
-        filters: Array.isArray(dbUser?.filters) 
-          ? dbUser.filters 
-          : (dbUser?.filters && Object.keys(dbUser.filters).length > 0 ? [dbUser.filters] : [])
+        filters: Array.isArray(dbUser?.filters) ? dbUser.filters : []
       };
 
       return {
-        access_token: this.jwtService.sign(payload),
-        user: payload,
+        access_token: this.jwtService.sign(userSession),
+        user: userSession,
       };
     } catch (error) {
-      this.logger.error('Erro na autenticação 42:', error.response?.data || error.message);
-      throw error;
+      this.logger.error(`Validation failed: ${error.response?.data?.error || error.message}`);
+      throw new HttpException('Auth provider error', HttpStatus.UNAUTHORIZED);
     }
   }
 
   async toggleNotifications(userId: number, enabled: boolean) {
-    this.logger.log(`Solicitação de toggle para user_id: ${userId} -> ${enabled}`);
     const { data, error } = await this.supabase
       .from('app_users')
       .update({ notifications_enabled: enabled })
@@ -145,36 +126,27 @@ export class AuthService {
       .single();
 
     if (error) {
-      this.logger.error(`Erro ao atualizar no Supabase para user ${userId}:`, error.message);
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Storage synchronization failed', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     if (data) {
-      // Enviar e-mail em background
       this.notificationsService.sendStatusEmail(data.email, data.login, enabled)
-        .then(info => {
-          this.logger.log(`E-mail de confirmação enviado para @${data.login}: ${info?.id}`);
-        })
-        .catch(mailError => {
-          this.logger.error(`Erro ao enviar e-mail de status para @${data.login}: ${mailError.message}`);
-        });
+        .catch(err => this.logger.error(`Mail dispatch failed: ${err.message}`));
     }
 
     return data;
   }
 
   async updateFilters(userId: number, filters: any) {
-    this.logger.log(`Solicitação de atualização de filtros para user_id: ${userId}`);
     const { data, error } = await this.supabase
       .from('app_users')
-      .update({ filters: filters })
+      .update({ filters })
       .eq('external_id', userId)
       .select()
       .single();
 
     if (error) {
-      this.logger.error(`Erro ao atualizar filtros no Supabase para user ${userId}:`, error.message);
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Filter persistence failed', HttpStatus.BAD_REQUEST);
     }
 
     return data;
