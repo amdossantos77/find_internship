@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
 import { createClient } from '@supabase/supabase-js';
 import { Cron } from '@nestjs/schedule';
+import { RemoteWorkService } from './remote-work/remote-work.service';
 
 @Injectable()
 export class AppService implements OnModuleInit {
@@ -15,6 +16,7 @@ export class AppService implements OnModuleInit {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly remoteWorkService: RemoteWorkService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL') || '',
@@ -151,7 +153,7 @@ export class AppService implements OnModuleInit {
       this.logger.log(`Vagas filtradas por Target (${target}): ${results.length}`);
     }
 
-    return results.map((offer: any) => {
+    return Promise.all(results.map(async (offer: any) => {
       const addressParts = (offer.full_address || "").split(',').map(p => p.trim());
       const extractedCountry = addressParts.length > 0 ? addressParts[addressParts.length - 1] : null;
       let extractedCity = offer.city;
@@ -161,6 +163,12 @@ export class AppService implements OnModuleInit {
           extractedCity = addressParts[addressParts.length - 3];
         }
       }
+
+      const isRemote = await this.remoteWorkService.detectRemoteWorkFromParts(
+        offer.title,
+        offer.little_description,
+        offer.full_address,
+      );
 
       return {
         id: offer.id,
@@ -175,10 +183,15 @@ export class AppService implements OnModuleInit {
         invalid_at: offer.invalid_at,
         company_name: offer.company?.name || 'Empresa Privada',
         company_logo: offer.company?.logo_url || null,
-        is_remote: offer.little_description?.toLowerCase().includes('remote') || 
-                   offer.title?.toLowerCase().includes('remote'),
+        is_remote: isRemote,
       };
-    });
+    }));
+  }
+
+  private async detectRemoteWorkAI(title?: string, little_description?: string, location?: string) {
+    return this.remoteWorkService.detectRemoteWorkAI(
+      `${title || ''} ${little_description || ''} ${location || ''}`,
+    );
   }
 
   private async performFetch(): Promise<void> {
