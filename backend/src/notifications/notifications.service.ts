@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Cron } from '@nestjs/schedule';
+import { RemoteWorkService } from '../remote-work/remote-work.service';
 
 const COUNTRY_MAPPING = {
   'FR': 'France', 'ES': 'Spain', 'PT': 'Portugal', 'BR': 'Brazil', 'AO': 'Angola',
@@ -28,7 +29,10 @@ export class NotificationsService {
   private resend: Resend;
   private supabase: SupabaseClient;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly remoteWorkService: RemoteWorkService,
+  ) {
     this.resend = new Resend(this.configService.get('RESEND_API_KEY'));
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL') || '',
@@ -92,6 +96,22 @@ export class NotificationsService {
 
     if (!offers?.length) return;
 
+    const hasRemoteFilter = filters.some(criteria => criteria.only_remote === true);
+    const remoteMap = new Map<string, boolean>();
+
+    if (hasRemoteFilter) {
+      await Promise.all(
+        offers.map(async offer => {
+          const isRemote = await this.remoteWorkService.detectRemoteWorkFromParts(
+            offer.title,
+            offer.little_description,
+            offer.location,
+          );
+          remoteMap.set(String(offer.id), isRemote);
+        }),
+      );
+    }
+
     const filterMatches = (offer: any) => {
       return filters.some(criteria => {
         if (criteria.country?.trim()) {
@@ -115,9 +135,7 @@ export class NotificationsService {
         }
 
         if (criteria.only_remote === true) {
-          const content = `${offer.title} ${offer.little_description || ''} ${offer.location || ''}`.toLowerCase();
-          const remoteTerms = ['remote', 'télétravail', 'remoto'];
-          if (!remoteTerms.some(term => content.includes(term))) return false;
+          if (!remoteMap.get(String(offer.id))) return false;
         }
 
         return true;

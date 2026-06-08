@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RemoteWorkService } from './remote-work/remote-work.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     NotificationsModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, RemoteWorkService],
 })
 export class AppModule {}
